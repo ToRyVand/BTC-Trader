@@ -2,6 +2,10 @@
 
 Bot de trading autónomo para **BTC/USDT** que opera sobre **Lightning Network** (wallet Phoenix) y liquida en **USDT sobre Polygon**, usando un comité de agentes y la **API de Claude** para tomar decisiones.
 
+![Trading Floor Dashboard](assets/dashboard.png)
+
+> 🖥️ El **trading floor** en vivo: cada agente del comité (TICKER, PERIODISTA, LA MÁQUINA, JEFE RIESGO, ECONOMISTA, EL DIRECTOR) representado en una oficina isométrica pixel-art, con el chart BTC/USD y el panel de objetivos.
+
 > ⚠️ **Advertencia:** este es un proyecto educativo/experimental que opera con **dinero real**. El trading automatizado de cripto conlleva riesgo de pérdida total. Usalo bajo tu propia responsabilidad y empezá siempre con `--dry-run`.
 
 ---
