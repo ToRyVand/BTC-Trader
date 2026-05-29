@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖⚡ BTC Trader
+# 🤖⚡ BTC/USD Trader
 
 **Bot de trading autónomo BTC/USDT sobre Lightning Network, con un comité de 5 agentes y decisiones vía la API de Claude.**
 
@@ -83,8 +83,8 @@ La decisión final pasa por `claude_brain.py` (API de Claude), que asigna una **
 ## 📦 Instalación
 
 ```bash
-git clone https://github.com/ToRyVand/BTC-Trader.git
-cd BTC-Trader
+git clone https://github.com/ToRyVand/BTC-USD-TRADER.git
+cd BTC-USD-TRADER
 
 python -m venv venv
 source venv/bin/activate
