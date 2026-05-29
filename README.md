@@ -1,4 +1,4 @@
-# ARK BTC Trader 🤖⚡
+# BTC Trader 🤖⚡
 
 Bot de trading autónomo para **BTC/USDT** que opera sobre **Lightning Network** (wallet Phoenix) y liquida en **USDT sobre Polygon**, usando un comité de agentes y la **API de Claude** para tomar decisiones.
 
