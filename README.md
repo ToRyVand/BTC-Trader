@@ -39,8 +39,8 @@ La decisión final pasa por `claude_brain.py` (API de Claude), que asigna una **
 ## Instalación
 
 ```bash
-git clone https://github.com/ToRyVand/<repo>.git
-cd <repo>
+git clone https://github.com/ToRyVand/BTC-Trader.git
+cd BTC-Trader
 
 python -m venv venv
 source venv/bin/activate
