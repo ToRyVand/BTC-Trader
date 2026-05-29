@@ -1,0 +1,47 @@
+# Secrets
+.env
+.env.local
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Wallet data
+*.dat
+*.wallet
+
+# Journal (trading history — sensitive)
+journal.jsonl
+journal_test.jsonl
+
+# Logs (pueden filtrar montos/direcciones en runtime real)
+*.log
+
+# Backups
+*.bak
+*~
+
+# Claude Code
+.claude/
+
+# OpenClaw skills (managed externally)
+.atl/
+
+# Backups JS
+*.backup

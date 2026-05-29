@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="ARK Capital Trading Floor - Visualización 2D en tiempo real del sistema de trading automatizado BTC/USDT">
+<title>⚔ ARK CAPITAL — TRADING FLOOR 98 [V7 · CANVAS + RPG]</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   VARIABLES — VGA 16-color palette
+═══════════════════════════════════════════════ */
+:root {
+  --bg:           #000000;
+  --panel:        #0c0c0c;
+  --panel2:       #111111;
+  --border:       #2a2a2a;
+  --border-light: #3f3f3f;
+
+  --black:    #000000;
+  --dgray:    #333333;
+  --gray:     #555555;
+  --lgray:    #888888;
+  --white:    #cccccc;
+
+  --dblue:    #0000aa;
+  --blue:     #5555ff;
+  --dcyan:    #00aaaa;
+  --cyan:     #55ffff;
+  --dgreen:   #00aa00;
+  --green:    #55ff55;
+  --dred:     #aa0000;
+  --red:      #ff5555;
+  --dmagenta: #aa00aa;
+  --magenta:  #ff55ff;
+  --dyellow:  #aa5500;
+  --yellow:   #ffff55;
+  --brown:    #aa5500;
+
+  --text: #999;
+  --dim:  #444;
+  --px:   3px;
+}
+
+/* RESET & BASE */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 7px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  image-rendering: pixelated;
+}
+
+/* CRT OVERLAY */
+#crt {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.13) 0px,
+      rgba(0,0,0,0.13) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+}
+#crt::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.6) 100%);
+}
+#crt::after {
+  content: '';
+  position: absolute; inset: 0;
+  animation: flicker 8s infinite;
+  background: transparent;
+}
+@keyframes flicker {
+  0%,98%,100% { opacity: 1; }
+  98.5%       { opacity: 0.92; }
+  99%         { opacity: 1; }
+  99.5%       { opacity: 0.88; }
+}
+
+/* FLOOR GRID */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background-image:
+    linear-gradient(rgba(0,170,0,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,170,0,0.025) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* HEADER */
+#hdr {
+  background: var(--panel);
+  border-bottom: 3px solid var(--dblue);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 0 var(--blue), inset 0 -1px 0 var(--dblue);
+  position: relative;
+  overflow: hidden;
+}
+#logo {
+  font-size: 11px;
+  color: var(--green);
+  text-shadow: 2px 2px 0 var(--dgreen), 0 0 12px rgba(85,255,85,0.3);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#logo em { color: var(--magenta); font-style: normal; }
+#logo .tag { color: var(--cyan); font-size: 6px; margin-left: 8px; }
+
+.hdr-tick { display: flex; flex-direction: column; gap: 1px; }
+.tick-lbl { font-size: 5px; color: var(--dim); letter-spacing: 2px; }
+.tick-val { font-size: 13px; color: var(--white); text-shadow: 0 0 6px rgba(200,200,200,0.2); }
+.tick-chg { font-size: 8px; }
+.tick-chg.up { color: var(--green); text-shadow: 0 0 6px var(--green); }
+.tick-chg.dn { color: var(--red);   text-shadow: 0 0 6px var(--red); }
+
+#hdr-status { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.svc { display: flex; align-items: center; gap: 4px; font-size: 6px; letter-spacing: 1px; }
+.led {
+  width: 6px; height: 6px;
+  border-radius: 0;
+  display: inline-block;
+  animation: led-pulse 2s ease-in-out infinite;
+}
+.led.g { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.led.y { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+.led.r { background: var(--red);    box-shadow: 0 0 4px var(--red); animation: led-err 0.5s infinite; }
+@keyframes led-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes led-err   { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+#hdr-clock { font-size: 9px; color: var(--cyan); letter-spacing: 1px; }
+
+/* TICKER TAPE */
+#ticker-tape {
+  background: var(--dblue);
+  border-bottom: 2px solid var(--blue);
+  height: 18px;
+  overflow: hidden;
+  position: relative;
+}
+#ticker-inner {
+  display: flex;
+  gap: 0;
+  white-space: nowrap;
+  animation: tape-scroll 40s linear infinite;
+  padding-top: 4px;
+}
+@keyframes tape-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tape-item {
+  font-size: 6px;
+  color: var(--cyan);
+  padding: 0 20px;
+  letter-spacing: 1px;
+}
+.tape-item.up { color: var(--green); }
+.tape-item.dn { color: var(--red); }
+.tape-sep { color: var(--gray); }
+
+/* STATUS BAR */
+.status-bar {
+  padding: 6px 14px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  font-size: 6px;
+  color: var(--lgray);
+  letter-spacing: 1px;
+  text-align: center;
+}
+.status-bar.ok  { color: var(--green); }
+.status-bar.err { color: var(--red); }
+
+/* MAIN LAYOUT */
+#main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 8px;
+  padding: 8px;
+  align-items: start;
+}
+@media (max-width: 1050px) { #main { grid-template-columns: 1fr; } }
+
+/* DIRECTOR — RPG BOSS BANNER */
+#director {
+  background: linear-gradient(135deg, #0a0010, #140028 40%, #0a0010);
+  border: 3px solid var(--magenta);
+  box-shadow:
+    4px 4px 0 var(--dmagenta),
+    inset 0 0 30px rgba(170,0,170,0.08),
+    0 0 20px rgba(255,85,255,0.05);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+#director::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    45deg, transparent, transparent 4px,
+    rgba(170,0,170,0.015) 4px, rgba(170,0,170,0.015) 5px
+  );
+}
+
+#dir-sprite-wrap {
+  flex-shrink: 0;
+  width: 54px; height: 54px;
+  position: relative;
+}
+.px { width: var(--px); height: var(--px); position: absolute; }
+
+/* Wizard sprite */
+.sprite-wizard {
+  box-shadow:
+    15px 0   0 0 var(--magenta),
+    12px 3px 0 0 var(--magenta), 15px 3px 0 0 var(--magenta), 18px 3px 0 0 var(--magenta),
+    9px  6px 0 0 var(--magenta), 12px 6px 0 0 var(--magenta), 15px 6px 0 0 var(--magenta), 18px 6px 0 0 var(--magenta), 21px 6px 0 0 var(--magenta),
+    6px  9px 0 0 var(--dmagenta), 9px 9px 0 0 var(--dmagenta), 12px 9px 0 0 var(--dmagenta), 15px 9px 0 0 var(--dmagenta), 18px 9px 0 0 var(--dmagenta), 21px 9px 0 0 var(--dmagenta), 24px 9px 0 0 var(--dmagenta),
+    9px  12px 0 0 var(--white), 12px 12px 0 0 var(--white), 15px 12px 0 0 var(--white), 18px 12px 0 0 var(--white),
+    9px  15px 0 0 var(--white), 12px 15px 0 0 var(--magenta), 15px 15px 0 0 var(--white), 18px 15px 0 0 var(--magenta),
+    9px  18px 0 0 var(--white), 12px 18px 0 0 var(--white), 15px 18px 0 0 var(--white), 18px 18px 0 0 var(--white),
+    9px  21px 0 0 var(--lgray), 12px 21px 0 0 var(--lgray), 15px 21px 0 0 var(--lgray), 18px 21px 0 0 var(--lgray),
+    6px  24px 0 0 var(--lgray), 9px 24px 0 0 var(--lgray), 12px 24px 0 0 var(--lgray), 15px 24px 0 0 var(--lgray), 18px 24px 0 0 var(--lgray), 21px 24px 0 0 var(--lgray),
+    6px  27px 0 0 var(--magenta), 9px 27px 0 0 var(--magenta), 12px 27px 0 0 var(--magenta), 15px 27px 0 0 var(--magenta), 18px 27px 0 0 var(--magenta), 21px 27px 0 0 var(--magenta),
+    3px  30px 0 0 var(--magenta), 6px 30px 0 0 var(--magenta), 9px 30px 0 0 var(--yellow), 12px 30px 0 0 var(--magenta), 15px 30px 0 0 var(--magenta), 18px 30px 0 0 var(--yellow), 21px 30px 0 0 var(--magenta), 24px 30px 0 0 var(--magenta),
+    30px 12px 0 0 var(--brown), 30px 15px 0 0 var(--brown), 30px 18px 0 0 var(--brown), 30px 21px 0 0 var(--brown),
+    27px 9px 0 0 var(--yellow), 30px 9px 0 0 var(--yellow), 33px 9px 0 0 var(--yellow),
+    27px 12px 0 0 var(--yellow), 33px 12px 0 0 var(--yellow);
+  animation: wizard-bounce 1s ease-in-out infinite;
+}
+@keyframes wizard-bounce {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  50%     { transform: translateY(-3px) rotate(-2deg); }
+}
+
+#dir-badge {
+  font-size: 5px;
+  color: var(--magenta);
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+  text-shadow: 0 0 8px var(--magenta);
+}
+#dir-name { font-size: 10px; color: var(--white); margin-bottom: 2px; }
+#dir-title { font-size: 5px; color: var(--gray); letter-spacing: 2px; margin-bottom: 8px; }
+
+#dir-rpg-stats { display: flex; gap: 6px; }
+.rpg-stat {
+  padding: 4px 8px;
+  border: 1px solid var(--dmagenta);
+  background: var(--black);
+  text-align: center;
+}
+.rpg-stat-v { font-size: 12px; color: var(--white); display: block; margin-bottom: 2px; }
+.rpg-stat-l { font-size: 5px; color: var(--gray); letter-spacing: 1px; }
+
+#dir-decision {
+  flex: 1;
+  border: 2px solid var(--dmagenta);
+  background: var(--black);
+  padding: 10px 14px;
+  position: relative;
+}
+#dir-decision::before {
+  content: '▼ DECRETO';
+  position: absolute;
+  top: -8px; left: 8px;
+  background: var(--black);
+  padding: 0 4px;
+  font-size: 5px;
+  color: var(--magenta);
+  letter-spacing: 2px;
+}
+#dir-signal {
+  font-size: 16px;
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+#dir-signal.buy    { color: var(--green);   text-shadow: 0 0 10px var(--green),  2px 2px 0 var(--dgreen); }
+#dir-signal.sell   { color: var(--red);     text-shadow: 0 0 10px var(--red),    2px 2px 0 var(--dred); }
+#dir-signal.hold   { color: var(--yellow);  text-shadow: 0 0 10px var(--yellow), 2px 2px 0 var(--dyellow); }
+#dir-signal.wait   { color: var(--gray); }
+
+#dir-reason-text {
+  font-size: 6px;
+  color: var(--lgray);
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+/* CANVAS — 2D TRADING FLOOR */
+#canvas-container {
+  background: var(--panel);
+  border: 3px solid var(--dblue);
+  box-shadow: 4px 4px 0 var(--dblue), inset 0 0 20px rgba(85,85,255,0.04);
+  padding: 8px;
+  margin-bottom: 8px;
+  position: relative;
+  min-height: 620px; /* AUMENTADO para más espacio vertical */
+}
+#canvas-container::before {
+  content: '▼ TRADING FLOOR · 2D LIVE VIEW';
+  position: absolute;
+  top: -7px; left: 12px;
+  background: var(--bg);
+  padding: 0 6px;
+  font-size: 5px;
+  color: var(--blue);
+  letter-spacing: 2px;
+}
+#room-canvas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 590px; /* AUMENTADO para mejor centrado */
+}
+#trading-floor-canvas {
+  width: 100%;
+  min-height: 580px; /* AUMENTADO para mejor proporción */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: var(--black);
+  border: 2px solid var(--border);
+  display: block;
+}
+
+/* AGENT GRID */
+#agent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+@media (max-width: 900px) { #agent-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* CHARACTER CARD */
+.char {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 9px 9px 7px;
+  position: relative;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.char::after {
+  content: '';
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 4px; height: 4px;
+  background: var(--border);
+}
+.char:hover, .char.active {
+  border-color: var(--ac);
+  box-shadow: 0 0 12px rgba(var(--ac-rgb), 0.15), 2px 2px 0 var(--ac);
+}
+.char.bullish  { border-color: var(--dgreen) !important; }
+.char.bearish  { border-color: var(--dred) !important; }
+
+.char-head {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.char-sprite-wrap { width: 36px; height: 36px; position: relative; flex-shrink: 0; }
+.sprite { width: var(--px); height: var(--px); position: absolute; top: 0; left: 0; display: block; }
+
+.char-meta { flex: 1; }
+.char-name { font-size: 8px; color: var(--white); margin-bottom: 3px; }
+.char-class { font-size: 5px; color: var(--gray); letter-spacing: 2px; margin-bottom: 5px; }
+
+.char-state {
+  display: inline-block;
+  font-size: 5px;
+  padding: 2px 5px;
+  letter-spacing: 1px;
+  border: 1px solid currentColor;
+}
+.char-state.idle     { color: var(--dim); border-color: var(--dim); }
+.char-state.thinking { color: var(--cyan);   border-color: var(--cyan);   animation: blink-badge 0.8s step-end infinite; }
+.char-state.signal   { color: var(--yellow); border-color: var(--yellow); }
+.char-state.alert    { color: var(--red);    border-color: var(--red);    animation: blink-badge 0.4s step-end infinite; }
+@keyframes blink-badge { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.char-lv { font-size: 5px; color: var(--yellow); margin-top: 3px; }
+
+.stat-row { display: flex; gap: 4px; margin-bottom: 6px; }
+.stat-box { flex: 1; text-align: center; padding: 3px 2px; background: var(--black); border: 1px solid var(--border-light); }
+.stat-v { font-size: 10px; color: var(--white); display: block; }
+.stat-l { font-size: 5px; color: var(--dim); letter-spacing: 1px; }
+
+.xp-row { margin-bottom: 6px; }
+.xp-label { display: flex; justify-content: space-between; font-size: 5px; color: var(--dim); margin-bottom: 2px; }
+.xp-track { height: 4px; background: var(--black); border: 1px solid var(--border-light); }
+.xp-fill { height: 100%; background: currentColor; transition: width 0.5s; }
+
+.signal-panel {
+  border: 2px solid var(--border-light);
+  background: var(--black);
+  padding: 6px 8px;
+  position: relative;
+  margin-bottom: 6px;
+}
+.signal-panel::before {
+  content: attr(data-lbl);
+  position: absolute; top: -7px; left: 6px;
+  background: var(--black);
+  padding: 0 3px;
+  font-size: 5px;
+  color: var(--gray);
+  letter-spacing: 1px;
+}
+
+.sig-main { display: flex; align-items: center; gap: 8px; }
+.sig-arrow { font-size: 12px; }
+.sig-arrow.buy  { color: var(--green);  text-shadow: 0 0 8px var(--green); }
+.sig-arrow.sell { color: var(--red);    text-shadow: 0 0 8px var(--red); }
+.sig-arrow.hold { color: var(--yellow); }
+.sig-arrow.wait { color: var(--dim); }
+
+.sig-word { font-size: 9px; letter-spacing: 1px; }
+.sig-word.buy  { color: var(--green); }
+.sig-word.sell { color: var(--red); }
+.sig-word.hold { color: var(--yellow); }
+.sig-word.wait { color: var(--dim); }
+
+.sig-conf { margin-left: auto; font-size: 6px; color: var(--lgray); }
+
+.conf-track { height: 3px; background: var(--dgray); margin-top: 4px; }
+.conf-fill { height: 100%; background: var(--cyan); transition: width 0.4s; }
+
+.dialog {
+  border: 1px solid var(--border-light);
+  border-top: none;
+  background: var(--black);
+  padding: 5px 7px;
+  font-size: 6px;
+  color: var(--lgray);
+  line-height: 1.8;
+  position: relative;
+  min-height: 30px;
+}
+.dialog::after {
+  content: '█';
+  font-size: 6px;
+  color: var(--gray);
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 2px;
+}
+@keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* INDIVIDUAL AGENT THEMES */
+#char-tech  { --ac: var(--blue);    --ac-rgb: 85,85,255; }
+#char-tech .char-name { color: var(--cyan); }
+#char-tech .xp-fill   { color: var(--blue); }
+#char-tech .char-state.signal { color: var(--blue); border-color: var(--blue); }
+
+#char-quant { --ac: var(--green);   --ac-rgb: 85,255,85; }
+#char-quant .char-name { color: var(--green); }
+#char-quant .xp-fill   { color: var(--dgreen); }
+#char-quant::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 14px,
+    rgba(0,170,0,0.03) 14px, rgba(0,170,0,0.03) 15px
+  );
+  pointer-events: none;
+}
+
+#char-fund  { --ac: var(--yellow);  --ac-rgb: 255,255,85; }
+#char-fund .char-name { color: var(--yellow); }
+#char-fund .xp-fill   { color: var(--dyellow); }
+
+#char-sent  { --ac: var(--magenta); --ac-rgb: 255,85,255; }
+#char-sent .char-name { color: var(--magenta); }
+#char-sent .xp-fill   { color: var(--dmagenta); }
+
+#char-risk  { --ac: var(--red);     --ac-rgb: 255,85,85; }
+#char-risk .char-name { color: var(--red); }
+#char-risk .xp-fill   { color: var(--dred); }
+#char-risk .conf-fill { background: var(--red); }
+
+/* SPRITES — pixel art via box-shadow */
+.sprite-tech {
+  box-shadow:
+    9px  0   0 var(--brown),  12px 0  0 var(--brown), 15px 0  0 var(--brown),
+    6px  3px 0 var(--brown),  9px  3px 0 var(--white), 12px 3px 0 var(--white), 15px 3px 0 var(--white), 18px 3px 0 var(--brown),
+    9px  6px 0 var(--white),  12px 6px 0 var(--cyan),  15px 6px 0 var(--white), 18px 6px 0 var(--cyan),
+    6px  9px 0 var(--dblue),  9px  9px 0 var(--dblue), 12px 9px 0 var(--dblue), 15px 9px 0 var(--dblue), 18px 9px 0 var(--dblue),
+    6px  12px 0 var(--blue),  9px  12px 0 var(--blue),  12px 12px 0 var(--blue), 15px 12px 0 var(--blue), 18px 12px 0 var(--blue),
+    3px  15px 0 var(--blue),  6px  15px 0 var(--blue),  9px  15px 0 var(--blue), 12px 15px 0 var(--white), 15px 15px 0 var(--blue), 18px 15px 0 var(--blue), 21px 15px 0 var(--blue),
+    3px  18px 0 var(--dgray), 9px  18px 0 var(--dgray), 15px 18px 0 var(--dgray), 21px 18px 0 var(--dgray),
+    3px  21px 0 var(--gray),  6px  21px 0 var(--gray),  9px  21px 0 var(--gray), 12px 21px 0 var(--gray), 15px 21px 0 var(--gray), 18px 21px 0 var(--gray), 21px 21px 0 var(--gray);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+
+.sprite-quant {
+  box-shadow:
+    15px 0   0 var(--green),
+    12px 3px 0 var(--dgreen), 15px 3px 0 var(--green), 18px 3px 0 var(--dgreen),
+    6px  6px 0 var(--gray),  9px 6px 0 var(--gray),  12px 6px 0 var(--gray), 15px 6px 0 var(--gray), 18px 6px 0 var(--gray), 21px 6px 0 var(--gray),
+    6px  9px 0 var(--gray),  9px 9px 0 var(--green),  12px 9px 0 var(--black), 15px 9px 0 var(--green), 18px 9px 0 var(--black), 21px 9px 0 var(--gray),
+    6px  12px 0 var(--gray), 9px 12px 0 var(--gray),  12px 12px 0 var(--green), 15px 12px 0 var(--green), 18px 12px 0 var(--gray), 21px 12px 0 var(--gray),
+    3px  15px 0 var(--dgreen), 6px 15px 0 var(--dgreen), 9px 15px 0 var(--dgreen), 12px 15px 0 var(--dgreen), 15px 15px 0 var(--dgreen), 18px 15px 0 var(--dgreen), 21px 15px 0 var(--dgreen), 24px 15px 0 var(--dgreen),
+    3px  18px 0 var(--dgreen), 6px 18px 0 var(--green), 9px 18px 0 var(--dgreen), 12px 18px 0 var(--green), 15px 18px 0 var(--dgreen), 18px 18px 0 var(--green), 21px 18px 0 var(--dgreen), 24px 18px 0 var(--dgreen),
+    3px  21px 0 var(--dgray),  9px 21px 0 var(--dgray),  15px 21px 0 var(--dgray), 21px 21px 0 var(--dgray);
+  animation: bounce 1.8s ease-in-out infinite;
+}
+
+.sprite-fund {
+  box-shadow:
+    9px  0   0 var(--lgray), 12px 0 0 var(--lgray), 15px 0 0 var(--lgray),
+    9px  3px 0 var(--white), 12px 3px 0 var(--white), 15px 3px 0 var(--white), 18px 3px 0 var(--white),
+    9px  6px 0 var(--white), 12px 6px 0 var(--yellow), 15px 6px 0 var(--yellow), 18px 6px 0 var(--white),
+    9px  9px 0 var(--white), 12px 9px 0 var(--yellow), 15px 9px 0 var(--black), 18px 9px 0 var(--white),
+    9px  12px 0 var(--lgray), 12px 12px 0 var(--lgray), 15px 12px 0 var(--lgray), 18px 12px 0 var(--lgray),
+    6px  15px 0 var(--dgray), 9px 15px 0 var(--dgray), 12px 15px 0 var(--white), 15px 15px 0 var(--white), 18px 15px 0 var(--dgray), 21px 15px 0 var(--dgray),
+    3px  18px 0 var(--dgray), 6px 18px 0 var(--dgray), 9px 18px 0 var(--dgray), 12px 18px 0 var(--yellow), 15px 18px 0 var(--yellow), 18px 18px 0 var(--dgray), 21px 18px 0 var(--dgray), 24px 18px 0 var(--dgray),
+    3px  21px 0 var(--gray),  6px 21px 0 var(--gray),  9px 21px 0 var(--gray), 12px 21px 0 var(--gray), 15px 21px 0 var(--gray), 18px 21px 0 var(--gray), 21px 21px 0 var(--gray), 24px 21px 0 var(--gray);
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.sprite-sent {
+  box-shadow:
+    9px  0 0 var(--dred), 12px 0 0 var(--dred), 15px 0 0 var(--dred),
+    6px  3px 0 var(--dred), 9px 3px 0 var(--dred), 12px 3px 0 var(--dred), 15px 3px 0 var(--dred), 18px 3px 0 var(--dred),
+    9px  6px 0 var(--white), 12px 6px 0 var(--white), 15px 6px 0 var(--white), 18px 6px 0 var(--white),
+    9px  9px 0 var(--white), 12px 9px 0 var(--magenta), 15px 9px 0 var(--white), 18px 9px 0 var(--magenta),
+    9px  12px 0 var(--white), 12px 12px 0 var(--red), 15px 12px 0 var(--red), 18px 12px 0 var(--white),
+    6px  15px 0 var(--magenta), 9px 15px 0 var(--magenta), 12px 15px 0 var(--magenta), 15px 15px 0 var(--magenta), 18px 15px 0 var(--magenta), 21px 15px 0 var(--magenta),
+    3px  18px 0 var(--magenta), 6px 18px 0 var(--magenta), 9px 18px 0 var(--magenta), 12px 18px 0 var(--magenta), 15px 18px 0 var(--magenta), 18px 18px 0 var(--magenta), 21px 18px 0 var(--magenta), 24px 18px 0 var(--magenta),
+    27px 12px 0 var(--gray), 27px 15px 0 var(--gray), 27px 18px 0 var(--white),
+    3px  21px 0 var(--gray), 9px 21px 0 var(--gray), 15px 21px 0 var(--gray), 21px 21px 0 var(--gray);
+  animation: reporter-bounce 0.9s ease-in-out infinite;
+}
+@keyframes reporter-bounce {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  25%     { transform: translateY(-2px) rotate(3deg); }
+  75%     { transform: translateY(-1px) rotate(-3deg); }
+}
+
+.sprite-risk {
+  box-shadow:
+    9px  0 0 var(--gray),  12px 0 0 var(--gray), 15px 0 0 var(--gray),
+    6px  3px 0 var(--gray), 9px 3px 0 var(--lgray), 12px 3px 0 var(--lgray), 15px 3px 0 var(--lgray), 18px 3px 0 var(--gray),
+    3px  6px 0 var(--gray), 6px 6px 0 var(--gray), 9px 6px 0 var(--gray), 12px 6px 0 var(--gray), 15px 6px 0 var(--gray), 18px 6px 0 var(--gray), 21px 6px 0 var(--gray),
+    3px  9px 0 var(--gray), 6px 9px 0 var(--red), 9px 9px 0 var(--red), 12px 9px 0 var(--red), 15px 9px 0 var(--red), 18px 9px 0 var(--red), 21px 9px 0 var(--gray),
+    3px  12px 0 var(--gray), 6px 12px 0 var(--gray), 9px 12px 0 var(--gray), 12px 12px 0 var(--gray), 15px 12px 0 var(--gray), 18px 12px 0 var(--gray), 21px 12px 0 var(--gray),
+    0px  15px 0 var(--gray), 3px 15px 0 var(--gray), 6px 15px 0 var(--gray), 9px 15px 0 var(--gray), 12px 15px 0 var(--gray), 15px 15px 0 var(--gray), 18px 15px 0 var(--gray), 21px 15px 0 var(--gray), 24px 15px 0 var(--gray),
+    0px  18px 0 var(--gray), 3px 18px 0 var(--dgray), 6px 18px 0 var(--gray), 9px 18px 0 var(--red), 12px 18px 0 var(--red), 15px 18px 0 var(--red), 18px 18px 0 var(--gray), 21px 18px 0 var(--dgray), 24px 18px 0 var(--gray),
+    0px  21px 0 var(--gray), 3px 21px 0 var(--gray), 6px 21px 0 var(--gray), 9px 21px 0 var(--gray), 12px 21px 0 var(--gray), 15px 21px 0 var(--gray), 18px 21px 0 var(--gray), 21px 21px 0 var(--gray), 24px 21px 0 var(--gray);
+  animation: bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+@keyframes cat-bounce { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-2px) rotate(2deg)} }
+
+/* SIDEBAR */
+#sidebar { display: flex; flex-direction: column; gap: 8px; }
+
+.scr { background: var(--panel); border: 2px solid var(--border); }
+.scr-hdr {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--panel2);
+}
+.scr-title { font-size: 7px; color: var(--cyan); letter-spacing: 2px; }
+.scr-sub   { font-size: 5px; color: var(--dim); }
+.scr-body  { padding: 10px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 4px; margin-bottom: 10px; }
+.kpi {
+  padding: 6px 4px;
+  background: var(--black);
+  border: 1px solid var(--border-light);
+  text-align: center;
+  position: relative;
+}
+.kpi-v { font-size: 14px; color: var(--white); display: block; margin-bottom: 3px; }
+.kpi-l { font-size: 5px; color: var(--dim); letter-spacing: 1px; }
+.kpi.hi .kpi-v { color: var(--green); }
+.kpi.lo .kpi-v { color: var(--red); }
+.kpi.warn .kpi-v { color: var(--yellow); }
+
+.bar-row { margin-bottom: 8px; }
+.bar-labels { display: flex; justify-content: space-between; font-size: 5px; color: var(--dim); margin-bottom: 3px; }
+.bar-labels span:last-child { color: var(--lgray); }
+.bar-track { height: 6px; background: var(--black); border: 1px solid var(--border-light); }
+.bar-fill { height: 100%; transition: width 0.5s; }
+.bar-fill.g { background: linear-gradient(90deg, var(--dgreen), var(--green)); }
+.bar-fill.r { background: linear-gradient(90deg, var(--dred), var(--red)); }
+.bar-fill.b { background: linear-gradient(90deg, var(--dcyan), var(--cyan)); }
+.bar-fill.m { background: linear-gradient(90deg, var(--dmagenta), var(--magenta)); }
+
+.ks-rule {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 6px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--border);
+  color: var(--dim);
+}
+.ks-rule:last-child { border: none; }
+.ks-ic { font-size: 9px; width: 14px; flex-shrink: 0; }
+.ks-rule.ok   { color: var(--green); }
+.ks-rule.fail { color: var(--red); animation: blink-badge 0.5s step-end infinite; }
+.ks-rule.warn { color: var(--yellow); }
+
+.log-scroll { max-height: 220px; overflow-y: auto; }
+.log-scroll::-webkit-scrollbar { width: 4px; }
+.log-scroll::-webkit-scrollbar-thumb { background: var(--border); }
+
+.log-row {
+  padding: 4px 6px;
+  margin-bottom: 2px;
+  background: var(--black);
+  border-left: 3px solid;
+  font-size: 6px;
+  line-height: 1.6;
+}
+.log-row.ok   { border-left-color: var(--dgreen); }
+.log-row.exec { border-left-color: var(--magenta); }
+.log-row.skip { border-left-color: var(--dyellow); }
+.log-row.err  { border-left-color: var(--dred); animation: err-flash 2s ease infinite; }
+@keyframes err-flash { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+.log-t  { color: var(--dim); margin-right: 5px; }
+.log-ev { color: var(--lgray); margin-right: 4px; }
+.log-p  { color: var(--cyan); }
+.log-badge {
+  display: inline-block;
+  padding: 1px 4px; margin-left: 4px;
+  font-size: 5px;
+}
+.log-badge.buy  { background: var(--dgreen);   color: var(--black); }
+.log-badge.sell { background: var(--dred);     color: var(--white); }
+.log-badge.dr   { background: var(--dmagenta); color: var(--white); }
+.log-badge.skip { background: var(--dyellow);  color: var(--black); }
+.log-badge.err  { background: var(--dred);     color: var(--white); }
+
+#footer {
+  text-align: center;
+  padding: 6px;
+  font-size: 6px;
+  color: var(--dim);
+  letter-spacing: 3px;
+  border-top: 2px solid var(--border);
+  margin-top: 4px;
+}
+
+/* TRADE FLASH */
+#trade-flash {
+  position: fixed; inset: 0; z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(85,255,85,0.08) 0%, transparent 70%);
+}
+#trade-flash.fire { animation: flash-in 1.2s ease-out forwards; }
+@keyframes flash-in { 0%{opacity:1} 100%{opacity:0} }
+
+/* ERROR OVERLAY — journal connection lost */
+#error-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.92);
+  border: 3px solid var(--dred);
+  box-shadow: 4px 4px 0 var(--dred), 0 0 20px rgba(255,85,85,0.15);
+  padding: 16px 20px;
+  text-align: center;
+  z-index: 100;
+  display: none;
+  min-width: 280px;
+}
+#error-overlay.visible { display: block; animation: overlay-pulse 2s ease-in-out infinite; }
+#error-overlay .err-icon { font-size: 18px; color: var(--red); margin-bottom: 6px; }
+#error-overlay .err-msg { font-size: 7px; color: var(--red); letter-spacing: 1px; margin-bottom: 8px; }
+#error-overlay .err-detail { font-size: 6px; color: var(--gray); line-height: 1.8; }
+#error-overlay .err-retry { font-size: 6px; color: var(--dyellow); margin-top: 8px; }
+@keyframes overlay-pulse { 0%,100%{border-color:var(--dred)} 50%{border-color:var(--red)} }
+
+/* SCREEN READER ONLY — hidden visually but accessible to assistive tech */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard focus indicator */
+*:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+#trading-floor-canvas:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 4px;
+}
+
+/* Canvas keyboard hint */
+#canvas-container::after {
+  content: 'TAB → focus | Flechas → navegar | Enter → detalles | ESC → cerrar';
+  position: absolute;
+  bottom: 4px; right: 8px;
+  font-size: 4px;
+  color: var(--dim);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+</style>
+</head>
+<body>
+
+<!-- Browser compatibility check -->
+<noscript>
+  <div style="position:fixed;inset:0;background:#000;color:#ff5555;font-family:monospace;padding:40px;text-align:center;z-index:99999;">
+    <h1>⚠ JavaScript requerido</h1>
+    <p>ARK Trading Floor necesita JavaScript para funcionar.</p>
+    <p>Por favor, habilita JavaScript en tu navegador y recarga la página.</p>
+  </div>
+</noscript>
+<div id="compat-warning" style="display:none;position:fixed;top:0;left:0;right:0;background:#aa0000;color:#fff;font-family:monospace;padding:12px;text-align:center;z-index:99998;font-size:14px;">
+  ⚠ Navegador no compatible. ARK Trading Floor requiere Chrome 60+, Firefox 55+, Safari 11+ o Edge 79+. Algunas funciones pueden no funcionar correctamente.
+</div>
+
+<script>
+// Browser compatibility check
+(function() {
+  const required = {
+    es6Modules: typeof window.Module !== 'undefined' || (function() { try { return new Function('import("")') && true; } catch(e) { return false; } })(),
+    promise: typeof Promise !== 'undefined',
+    fetch: typeof fetch !== 'undefined',
+    canvas: !!document.createElement('canvas').getContext,
+    asyncAwait: (function() { try { return new Function('async function t() {}') && true; } catch(e) { return false; } })(),
+    arrowFunctions: (function() { try { return new Function('() => {}') && true; } catch(e) { return false; } })()
+  };
+  
+  const allSupported = Object.values(required).every(Boolean);
+  
+  if (!allSupported) {
+    const warning = document.getElementById('compat-warning');
+    if (warning) warning.style.display = 'block';
+    console.warn('[Compat] Browser missing features:', required);
+  }
+  
+  window.browserCompat = required;
+})();
+</script>
+
+<div id="crt"></div>
+<div id="trade-flash"></div>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div id="logo"><em>⚔</em> ARK CAPITAL <em>98</em><span class="tag">[V7]</span></div>
+
+  <div class="hdr-tick">
+    <span class="tick-lbl">BTC/USDT</span>
+    <span class="tick-val" id="hdr-price">$——————</span>
+    <span class="tick-chg" id="hdr-chg">——</span>
+  </div>
+
+  <div class="hdr-tick" style="opacity:0.6">
+    <span class="tick-lbl">24H</span>
+    <span class="tick-chg" id="hdr-1h">——</span>
+  </div>
+
+  <div id="hdr-status">
+    <div class="svc"><div class="led g" id="dot-lnd"></div>LND</div>
+    <div class="svc"><div class="led g" id="dot-bol"></div>BOLTZ</div>
+    <div class="svc"><div class="led y" id="dot-jrn"></div>JOURNAL</div>
+    <div id="hdr-clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- TICKER TAPE -->
+<div id="ticker-tape">
+  <div id="ticker-inner">
+    <span class="tape-item up">BTC ▲ +2.3%</span><span class="tape-sep">·</span>
+    <span class="tape-item dn">ETH ▼ -0.8%</span><span class="tape-sep">·</span>
+    <span class="tape-item">FEAR&amp;GREED 64 — GREED</span><span class="tape-sep">·</span>
+    <span class="tape-item up">DOMINANCE 58.4%</span><span class="tape-sep">·</span>
+    <span class="tape-item">MEMPOOL 42 sat/vB</span><span class="tape-sep">·</span>
+    <span class="tape-item up">LIGHTNING 5,300 BTC</span><span class="tape-sep">·</span>
+    <span class="tape-item dn">HASHRATE ▼ -1.2%</span><span class="tape-sep">·</span>
+    <span class="tape-item">NEXT HALVING ~1,287 DAYS</span><span class="tape-sep">·</span>
+    <span class="tape-item up">BTC ▲ +2.3%</span><span class="tape-sep">·</span>
+    <span class="tape-item dn">ETH ▼ -0.8%</span><span class="tape-sep">·</span>
+    <span class="tape-item">FEAR&amp;GREED 64 — GREED</span><span class="tape-sep">·</span>
+    <span class="tape-item up">DOMINANCE 58.4%</span><span class="tape-sep">·</span>
+    <span class="tape-item">MEMPOOL 42 sat/vB</span><span class="tape-sep">·</span>
+    <span class="tape-item up">LIGHTNING 5,300 BTC</span><span class="tape-sep">·</span>
+    <span class="tape-item dn">HASHRATE ▼ -1.2%</span><span class="tape-sep">·</span>
+    <span class="tape-item">NEXT HALVING ~1,287 DAYS</span><span class="tape-sep">·</span>
+  </div>
+</div>
+
+<!-- STATUS -->
+<div class="status-bar" id="status">Inicializando V7 · Canvas + RPG UI · Cargando módulos...</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ROOM -->
+  <div id="room">
+
+    <!-- DIRECTOR -->
+    <div id="director">
+      <div id="dir-sprite-wrap">
+        <div class="px sprite-wizard"></div>
+      </div>
+      <div>
+        <div id="dir-badge">[ DIRECTOR ]</div>
+        <div id="dir-name">EL DIRECTOR</div>
+        <div id="dir-title">AI BRAIN · CLAUDE SONNET</div>
+        <div id="dir-rpg-stats">
+          <div class="rpg-stat"><span class="rpg-stat-v" id="dir-conf">—</span><span class="rpg-stat-l">CON</span></div>
+          <div class="rpg-stat"><span class="rpg-stat-v" id="dir-xp">0</span><span class="rpg-stat-l">XP</span></div>
+          <div class="rpg-stat"><span class="rpg-stat-v" id="dir-trd">0</span><span class="rpg-stat-l">TRADES</span></div>
+        </div>
+      </div>
+      <div id="dir-decision">
+        <div id="dir-signal" class="wait">ESPERANDO</div>
+        <div id="dir-reason-text">Aguardando señales del equipo...</div>
+      </div>
+    </div>
+
+    <!-- CANVAS - 2D TRADING FLOOR -->
+    <div id="canvas-container">
+      <div id="room-canvas">
+        <canvas id="trading-floor-canvas" width="960" height="640" role="img" aria-label="ARK Trading Floor - Vista 2D isométrica con 5 agentes de trading animados. Cada agente tiene un escritorio con monitor. Use las teclas de flecha para navegar entre agentes, Enter para ver estadísticas, Escape para cerrar paneles." tabindex="0">
+          <p class="sr-only">Trading Floor 2D — 5 agentes: Ticker (Análisis Técnico), La Máquina (Quant), Economista (Fundamental), Periodista (Sentiment), Jefe Riesgo (Risk). Estado actual: esperando datos del journal.</p>
+        </canvas>
+      </div>
+      <!-- Error overlay for journal connection issues -->
+      <div id="error-overlay" role="alert" aria-live="assertive">
+        <div class="err-icon">⚠</div>
+        <div class="err-msg">SIN CONEXIÓN CON JOURNAL</div>
+        <div class="err-detail" id="err-detail">No se puede leer journal.jsonl</div>
+        <div class="err-retry" id="err-retry">Reintentando en 30s...</div>
+      </div>
+    </div>
+
+    <!-- Live region for screen reader announcements -->
+    <div id="a11y-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- AGENT GRID -->
+    <div id="agent-grid">
+
+      <!-- TICKER -->
+      <div class="char" id="char-tech">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite sprite-tech"></div></div>
+          <div class="char-meta">
+            <div class="char-name">TICKER</div>
+            <div class="char-class">ANALISTA TEC.</div>
+            <div class="char-state idle" id="st-tech">IDLE</div>
+            <div class="char-lv" id="lv-tech">LV 3 — EXPERT</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="tech-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="tech-w" style="color:var(--green)">0</span><span class="stat-l">WIN</span></div>
+          <div class="stat-box"><span class="stat-v" id="tech-l" style="color:var(--red)">0</span><span class="stat-l">LOSS</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="tech-xp-txt">60%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="tech-xp" style="width:60%;color:var(--blue)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="SEÑAL">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-tech">◆</span>
+            <span class="sig-word hold" id="sig-tech">HOLD</span>
+            <span class="sig-conf" id="conf-tech">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-tech" style="width:0%"></div></div>
+        </div>
+        <div class="dialog" id="reas-tech">Analizando gráficos...</div>
+      </div>
+
+      <!-- LA MAQUINA -->
+      <div class="char" id="char-quant">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite sprite-quant"></div></div>
+          <div class="char-meta">
+            <div class="char-name">LA MAQUINA</div>
+            <div class="char-class">QUANT MODEL</div>
+            <div class="char-state idle" id="st-quant">IDLE</div>
+            <div class="char-lv" id="lv-quant">LV 3 — EXPERT</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="quant-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="quant-w" style="color:var(--green)">0</span><span class="stat-l">WIN</span></div>
+          <div class="stat-box"><span class="stat-v" id="quant-l" style="color:var(--red)">0</span><span class="stat-l">LOSS</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="quant-xp-txt">45%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="quant-xp" style="width:45%;color:var(--dgreen)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="SEÑAL">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-quant">◆</span>
+            <span class="sig-word hold" id="sig-quant">HOLD</span>
+            <span class="sig-conf" id="conf-quant">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-quant" style="width:0%"></div></div>
+        </div>
+        <div class="dialog" id="reas-quant">Procesando modelos...</div>
+      </div>
+
+      <!-- ECONOMISTA -->
+      <div class="char" id="char-fund">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite sprite-fund"></div></div>
+          <div class="char-meta">
+            <div class="char-name">ECONOMISTA</div>
+            <div class="char-class">FUNDAMENTAL</div>
+            <div class="char-state idle" id="st-fund">IDLE</div>
+            <div class="char-lv" id="lv-fund">LV 2 — JOURNEYMAN</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="fund-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="fund-w" style="color:var(--green)">0</span><span class="stat-l">WIN</span></div>
+          <div class="stat-box"><span class="stat-v" id="fund-l" style="color:var(--red)">0</span><span class="stat-l">LOSS</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="fund-xp-txt">30%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="fund-xp" style="width:30%;color:var(--dyellow)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="SEÑAL">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-fund">◆</span>
+            <span class="sig-word hold" id="sig-fund">HOLD</span>
+            <span class="sig-conf" id="conf-fund">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-fund" style="width:0%"></div></div>
+        </div>
+        <div class="dialog" id="reas-fund">Leyendo macro...</div>
+      </div>
+
+      <!-- PERIODISTA -->
+      <div class="char" id="char-sent">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite sprite-sent"></div></div>
+          <div class="char-meta">
+            <div class="char-name">PERIODISTA</div>
+            <div class="char-class">SENTIMENT</div>
+            <div class="char-state idle" id="st-sent">IDLE</div>
+            <div class="char-lv" id="lv-sent">LV 2 — JOURNEYMAN</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="sent-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="sent-w" style="color:var(--green)">0</span><span class="stat-l">WIN</span></div>
+          <div class="stat-box"><span class="stat-v" id="sent-l" style="color:var(--red)">0</span><span class="stat-l">LOSS</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="sent-xp-txt">20%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="sent-xp" style="width:20%;color:var(--dmagenta)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="SEÑAL">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-sent">◆</span>
+            <span class="sig-word hold" id="sig-sent">HOLD</span>
+            <span class="sig-conf" id="conf-sent">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-sent" style="width:0%"></div></div>
+        </div>
+        <div class="dialog" id="reas-sent">Escaneando redes...</div>
+      </div>
+
+      <!-- JEFE RIESGO -->
+      <div class="char" id="char-risk">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite sprite-risk"></div></div>
+          <div class="char-meta">
+            <div class="char-name">JEFE RIESGO</div>
+            <div class="char-class">GUARDIAN</div>
+            <div class="char-state idle" id="st-risk">IDLE</div>
+            <div class="char-lv" id="lv-risk">LV 4 — MASTER</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="risk-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="risk-blk" style="color:var(--red)">0</span><span class="stat-l">BLOCK</span></div>
+          <div class="stat-box"><span class="stat-v" id="risk-save" style="color:var(--green)">0</span><span class="stat-l">SAVE</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="risk-xp-txt">75%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="risk-xp" style="width:75%;color:var(--dred)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="AUTORIZA">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-risk">◆</span>
+            <span class="sig-word hold" id="sig-risk">HOLD</span>
+            <span class="sig-conf" id="conf-risk">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-risk" style="width:0%;background:var(--red)"></div></div>
+        </div>
+        <div class="dialog" id="reas-risk">Evaluando riesgo...</div>
+      </div>
+
+      <!-- EL DIRECTOR -->
+      <div class="char" id="char-director" style="--ac:var(--magenta);--ac-rgb:255,85,255">
+        <div class="char-head">
+          <div class="char-sprite-wrap"><div class="sprite" style="
+            background:red;
+            box-shadow:
+              15px 0   0 var(--yellow),
+              12px 3px 0 var(--yellow), 15px 3px 0 var(--yellow), 18px 3px 0 var(--yellow),
+              9px  6px 0 var(--magenta), 12px 6px 0 var(--magenta), 15px 6px 0 var(--magenta), 18px 6px 0 var(--magenta), 21px 6px 0 var(--magenta),
+              6px  9px 0 var(--dmagenta), 9px 9px 0 var(--dmagenta), 12px 9px 0 var(--dmagenta), 15px 9px 0 var(--dmagenta), 18px 9px 0 var(--dmagenta), 21px 9px 0 var(--dmagenta), 24px 9px 0 var(--dmagenta),
+              9px  12px 0 var(--yellow), 12px 12px 0 var(--yellow), 15px 12px 0 var(--yellow), 18px 12px 0 var(--yellow),
+              9px  15px 0 var(--yellow), 12px 15px 0 var(--magenta), 15px 15px 0 var(--yellow), 18px 15px 0 var(--magenta),
+              9px  18px 0 var(--yellow), 12px 18px 0 var(--yellow), 15px 18px 0 var(--yellow), 18px 18px 0 var(--yellow),
+              9px  21px 0 var(--lgray), 12px 21px 0 var(--lgray), 15px 21px 0 var(--lgray), 18px 21px 0 var(--lgray),
+              6px  24px 0 var(--lgray), 9px 24px 0 var(--lgray), 12px 24px 0 var(--lgray), 15px 24px 0 var(--lgray), 18px 24px 0 var(--lgray), 21px 24px 0 var(--lgray),
+              6px  27px 0 var(--magenta), 9px 27px 0 var(--magenta), 12px 27px 0 var(--magenta), 15px 27px 0 var(--magenta), 18px 27px 0 var(--magenta), 21px 27px 0 var(--magenta),
+              3px  30px 0 var(--yellow), 6px 30px 0 var(--yellow), 9px 30px 0 var(--white), 12px 30px 0 var(--yellow), 15px 30px 0 var(--yellow), 18px 30px 0 var(--white), 21px 30px 0 var(--yellow), 24px 30px 0 var(--yellow);
+            animation: wizard-bounce 1s ease-in-out infinite;"></div></div>
+          <div class="char-meta">
+            <div class="char-name" style="color:var(--magenta)">EL DIRECTOR</div>
+            <div class="char-class">AI BRAIN · CLAUDE</div>
+            <div class="char-state idle" id="st-director">IDLE</div>
+            <div class="char-lv" id="lv-director">LV 5 — AI OVERLORD</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="director-con">—</span><span class="stat-l">CON</span></div>
+          <div class="stat-box"><span class="stat-v" id="director-v" style="color:var(--magenta)">0</span><span class="stat-l">DECIDE</span></div>
+          <div class="stat-box"><span class="stat-v" id="director-o" style="color:var(--green)">0</span><span class="stat-l">OVERRIDE</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>XP</span><span id="director-xp-txt">90%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="director-xp" style="width:90%;color:var(--dmagenta)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="DECIDE" style="border-color:var(--dmagenta)">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-director">◆</span>
+            <span class="sig-word hold" id="sig-director">HOLD</span>
+            <span class="sig-conf" id="conf-director">0/10</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-director" style="width:0%;background:var(--magenta)"></div></div>
+        </div>
+        <div class="dialog" id="reas-director">Analizando mercado...</div>
+      </div>
+
+      <!-- SHADO 🐈‍⬛ -->
+      <div class="char" id="char-shado" style="--ac:#ffcc00;--ac-rgb:255,204,0;border-color:#333">
+        <div class="char-head">
+          <div class="char-sprite-wrap" style="display:flex;align-items:center;justify-content:center">
+            <div style="font-size:24px;animation:cat-bounce 2s ease-in-out infinite;">🐈‍⬛</div>
+          </div>
+          <div class="char-meta">
+            <div class="char-name" style="color:#ffcc00">SHADO 🐈‍⬛</div>
+            <div class="char-class">MASCOTA DE LA SUERTE</div>
+            <div class="char-state idle" id="st-shado">IDLE</div>
+            <div class="char-lv" id="lv-shado">LV 9 — MYSTIC CAT</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-v" id="shado-naps" style="color:var(--cyan)">0</span><span class="stat-l">NAPS</span></div>
+          <div class="stat-box"><span class="stat-v" id="shado-plays" style="color:var(--green)">0</span><span class="stat-l">PLAYS</span></div>
+          <div class="stat-box"><span class="stat-v" id="shado-patrol" style="color:var(--yellow)">0</span><span class="stat-l">PATROL</span></div>
+        </div>
+        <div class="xp-row">
+          <div class="xp-label"><span>LUCK</span><span id="shado-luck-txt">100%</span></div>
+          <div class="xp-track"><div class="xp-fill" id="shado-luck" style="width:100%;color:var(--dyellow)"></div></div>
+        </div>
+        <div class="signal-panel" data-lbl="ESTADO" style="border-color:#333">
+          <div class="sig-main">
+            <span class="sig-arrow hold" id="arr-shado">◆</span>
+            <span class="sig-word hold" id="sig-shado">RONRONEANDO</span>
+          </div>
+          <div class="conf-track"><div class="conf-fill" id="cbar-shado" style="width:100%;background:var(--dyellow)"></div></div>
+        </div>
+        <div class="dialog" id="reas-shado">Miau...</div>
+      </div>
+
+    </div><!-- /agent-grid -->
+  </div><!-- /room -->
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+
+    <!-- KPIs -->
+    <div class="scr" role="region" aria-label="Métricas de rendimiento">
+      <div class="scr-hdr">
+        <span class="scr-title">PERFORMANCE</span>
+        <span class="scr-sub" id="kpi-date">--</span>
+      </div>
+      <div class="scr-body">
+        <div class="kpi-grid" aria-label="Indicadores clave">
+          <div class="kpi" role="status"><span class="kpi-v" id="kpi-cyc">0</span><span class="kpi-l">CICLOS</span></div>
+        <div class="kpi hi" role="status"><span class="kpi-v" id="kpi-exe">0</span><span class="kpi-l">EJECUTADO</span></div>
+        <div class="kpi warn" role="status"><span class="kpi-v" id="kpi-trade-amt">—</span><span class="kpi-l">TRADE</span></div>
+        <div class="kpi hi" role="status"><span class="kpi-v" id="kpi-win" style="color:var(--green)">0</span><span class="kpi-l">WINS</span></div>
+          <div class="kpi lo" role="status"><span class="kpi-v" id="kpi-loss" style="color:var(--red)">0</span><span class="kpi-l">LOSSES</span></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-labels"><span>PNL DIARIO</span><span id="pnl-v">0%</span></div>
+          <div class="bar-track"><div class="bar-fill g" id="pnl-b" style="width:50%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-labels"><span>WIN RATE</span><span id="wr-v">0%</span></div>
+          <div class="bar-track"><div class="bar-fill b" id="wr-b" style="width:0%"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-labels"><span>EXEC RATE</span><span id="er-v">0%</span></div>
+          <div class="bar-track"><div class="bar-fill m" id="er-b" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kill Switch -->
+    <div class="scr" role="region" aria-label="Controles de seguridad">
+      <div class="scr-hdr">
+        <span class="scr-title">KILL SWITCH</span>
+        <span class="scr-sub" id="ks-status">ARMED</span>
+      </div>
+      <div class="scr-body">
+        <div class="ks-rule ok" id="r-bal"><span class="ks-ic">✓</span><span>Balance ≥ 10K sats</span></div>
+        <div class="ks-rule ok" id="r-pnl"><span class="ks-ic">✓</span><span>PnL diario > -5%</span></div>
+        <div class="ks-rule ok" id="r-sw"> <span class="ks-ic">✓</span><span>Sin swaps pendientes</span></div>
+        <div class="ks-rule ok" id="r-mx"> <span class="ks-ic">✓</span><span>Max 1 swap activo</span></div>
+        <div class="ks-rule ok" id="r-cf"> <span class="ks-ic">✓</span><span>Confianza ≥ 7/10</span></div>
+      </div>
+    </div>
+
+    <!-- Battle Log -->
+    <div class="scr" style="flex:1" role="region" aria-label="Registro de eventos de trading" aria-live="polite">
+      <div class="scr-hdr">
+        <span class="scr-title">BATTLE LOG</span>
+        <span class="scr-sub" id="log-count">0 eventos</span>
+      </div>
+      <div class="scr-body" style="padding:6px">
+        <div class="log-scroll" id="log-list">
+          <div style="text-align:center;padding:16px;color:var(--dim);font-size:6px;">
+            ── SIN DATOS ──<br><br>
+            Ejecutá <span style="color:var(--cyan)">bot.py --dry-run</span><br>o arrastrá el journal aquí
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /main -->
+
+<div id="footer">══════ ARK CAPITAL TRADING SYSTEM 98 · POWERED BY LIGHTNING ══════</div>
+
+<!-- ═══════════════════════════════════════════
+     INLINE: Journal poll + RPG UI updates
+═══════════════════════════════════════════ -->
+<script>
+const AGENTS = {
+  'trader-technical':   { pre:'tech',     sig:'sig-tech',     arr:'arr-tech',     conf:'conf-tech',     cbar:'cbar-tech',     reas:'reas-tech',     st:'st-tech'     },
+  'trader-quant':       { pre:'quant',    sig:'sig-quant',    arr:'arr-quant',    conf:'conf-quant',    cbar:'cbar-quant',    reas:'reas-quant',    st:'st-quant'    },
+  'trader-fundamental': { pre:'fund',     sig:'sig-fund',     arr:'arr-fund',     conf:'conf-fund',     cbar:'cbar-fund',     reas:'reas-fund',     st:'st-fund'     },
+  'trader-sentiment':   { pre:'sent',     sig:'sig-sent',     arr:'arr-sent',     conf:'conf-sent',     cbar:'cbar-sent',     reas:'reas-sent',     st:'st-sent'     },
+  'trader-risk':        { pre:'risk',     sig:'sig-risk',     arr:'arr-risk',     conf:'conf-risk',     cbar:'cbar-risk',     reas:'reas-risk',     st:'st-risk'     },
+  'claude-brain':       { pre:'director', sig:'sig-director', arr:'arr-director', conf:'conf-director', cbar:'cbar-director', reas:'reas-director', st:'st-director' },
+};
+
+const SIGNAL_ARROW = { BUY:'▲', SELL:'▼', HOLD:'◆', WAIT:'—' };
+
+const el = id => document.getElementById(id);
+const fmt = ts => !ts ? '--:--:--' : new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const pct = n => (n>=0?'+':'')+Number(n).toFixed(2)+'%';
+const d8  = ts => !ts ? '--' : new Date(ts).toLocaleDateString('es-AR',{day:'2-digit',month:'short'}).toUpperCase();
+
+let journal = [];
+let refreshInterval = null;
+let clockInterval = null;
+
+async function loadJournal() {
+  try {
+    const r = await fetch('journal.jsonl?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) return journal;
+    const text = await r.text();
+    return text.trim().split('\n')
+      .filter(l => l.trim())
+      .map(l => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
+  } catch { return journal; }
+}
+
+function dailyStats(entries) {
+  const tod = new Date().toISOString().slice(0,10);
+  let cyc=0, exe=0, skp=0, err=0, wins=0, losses=0, pnlSum=0, pnlCount=0;
+  entries.forEach(e => {
+    if (!e.timestamp?.startsWith(tod)) return;
+    if (e.event==='CYCLE') cyc++;
+    if (e.event==='ERROR') err++;
+    if (e.result?.status==='EJECUTADO'||e.result?.status==='DRY_RUN') exe++;
+    if (e.result?.status==='SKIP') skp++;
+    if (e.result?.pnl_pct !== undefined) {
+      pnlSum += e.result.pnl_pct;
+      pnlCount++;
+      if (e.result.pnl_pct > 0) wins++; else losses++;
+    }
+  });
+  return { cyc, exe, skp, err, wins, losses, pnl: pnlCount ? pnlSum : 0, pnlCount, rate: cyc ? Math.round(exe/cyc*100) : 0, wr: (wins+losses) ? Math.round(wins/(wins+losses)*100) : 0 };
+}
+
+function setSignal(agentKey, signal, confidence, reason) {
+  const m = AGENTS[agentKey];
+  if (!m) return;
+  const sg = (signal||'WAIT').toUpperCase();
+  const cls = sg==='BUY'?'buy':sg==='SELL'?'sell':sg==='HOLD'?'hold':'wait';
+  const cf = Math.round((confidence||0)*10);
+
+  if (el(m.sig))  { el(m.sig).textContent = sg; el(m.sig).className = 'sig-word ' + cls; }
+  if (el(m.arr))  { el(m.arr).textContent = SIGNAL_ARROW[sg] || '◆'; el(m.arr).className = 'sig-arrow ' + cls; }
+  if (el(m.conf)) { el(m.conf).textContent = cf + '/10'; }
+  if (el(m.cbar)) { el(m.cbar).style.width = (cf*10) + '%'; }
+  if (el(m.reas) && el(m.reas).childNodes[0]) { el(m.reas).childNodes[0].textContent = (reason||'Sin datos.'); }
+
+  const stEl = el(m.st);
+  if (stEl) {
+    if (sg==='BUY'||sg==='SELL') { stEl.textContent='SIGNAL!'; stEl.className='char-state signal'; }
+    else if (sg==='HOLD')        { stEl.textContent='HOLD';    stEl.className='char-state thinking'; }
+    else                         { stEl.textContent='IDLE';    stEl.className='char-state idle'; }
+  }
+}
+
+function setRule(id, ok) {
+  const e = el(id);
+  if (!e) return;
+  e.className = 'ks-rule ' + (ok?'ok':'fail');
+  const ic = e.querySelector('.ks-ic');
+  if (ic) ic.textContent = ok ? '✓' : '✗';
+}
+
+function render(entries) {
+  if (!entries.length) return;
+  const last = entries[entries.length-1];
+  const st = dailyStats(entries);
+  const sigs = last.agent_signals || [];
+  const pr = last.btc_price;
+
+  // Accessibility: announce significant state changes
+  const lastEntry = entries[entries.length - 1];
+  if (lastEntry.event === 'CYCLE' && lastEntry.result) {
+    const status = lastEntry.result.status;
+    if (status === 'EJECUTADO' || status === 'DRY_RUN') {
+      const action = lastEntry.result.action || 'TRADE';
+      const actionText = action === 'COMPRAR_BTC' ? 'Compra ejecutada' : action === 'VENDER_BTC' ? 'Venta ejecutada' : action;
+      announceToScreenReader(`${actionText}. Confianza: ${lastEntry.decision?.confianza || '?'}/10`);
+    } else if (status === 'SKIP') {
+      const reason = lastEntry.result.reason || 'sin acción';
+      announceToScreenReader(`Ciclo sin ejecución: ${reason}`);
+    }
+  }
+
+  if (el('hdr-price')) el('hdr-price').textContent = pr ? '$'+Number(pr).toLocaleString('es-AR') : '$——————';
+  const tech = sigs.find(s=>s.agent==='trader-technical');
+  const cm = (tech?.reason||'').match(/([+-]?[\d.]+)%/);
+  const chg = cm ? parseFloat(cm[1]) : 0;
+  if (el('hdr-chg')) { el('hdr-chg').textContent = pct(chg); el('hdr-chg').className = 'tick-chg ' + (chg>=0?'up':'dn'); }
+  if (el('hdr-1h'))  { el('hdr-1h').textContent  = pct(chg); el('hdr-1h').className  = 'tick-chg ' + (chg>=0?'up':'dn'); }
+
+  if (el('kpi-date')) el('kpi-date').textContent = d8(last.timestamp);
+  if (el('kpi-cyc'))  el('kpi-cyc').textContent = st.cyc;
+  if (el('kpi-exe'))  el('kpi-exe').textContent = st.exe;
+  if (el('kpi-win'))  el('kpi-win').textContent = st.wins;
+  if (el('kpi-loss')) el('kpi-loss').textContent = st.losses;
+
+  // Trade amount from latest cycle or position
+  const tradeAmt = last.decision?.trade_amount_sats;
+  if (el('kpi-trade-amt') && tradeAmt) {
+    el('kpi-trade-amt').textContent = (tradeAmt / 1000).toFixed(0) + 'K';
+  }
+
+  const pnl = st.pnl || last.decision?.daily_pnl_pct || 0;
+  if (el('pnl-v')) { el('pnl-v').textContent = pct(pnl); el('pnl-v').style.color = pnl>=0?'var(--green)':'var(--red)'; }
+  if (el('pnl-b')) { el('pnl-b').style.width = Math.max(0,Math.min(100,50+pnl*5))+'%'; el('pnl-b').className = 'bar-fill '+(pnl>=0?'g':'r'); }
+
+  const wr = st.wr || (st.exe>0 ? Math.min(100,Math.round((st.exe-Math.round(st.exe*0.3))/st.exe*100)) : 0);
+  if (el('wr-v')) el('wr-v').textContent = wr+'%';
+  if (el('wr-b')) el('wr-b').style.width = wr+'%';
+  if (el('er-v')) el('er-v').textContent = st.rate+'%';
+  if (el('er-b')) el('er-b').style.width = st.rate+'%';
+
+  const dc = last.claude_decision || {};
+  const raw = (dc.accion||'ESPERAR').replace('_',' ');
+  const tok = raw.split(' ')[0];
+  const cls = tok==='COMPRAR'?'buy':tok==='VENDER'?'sell':tok==='ESPERAR'?'hold':'wait';
+  if (el('dir-conf'))        el('dir-conf').textContent = dc.confianza || '—';
+  if (el('dir-xp'))          el('dir-xp').textContent = Math.round(st.exe*15 + st.cyc*2);
+  if (el('dir-trd'))         el('dir-trd').textContent = st.exe;
+  if (el('dir-signal'))      { el('dir-signal').textContent = raw; el('dir-signal').className = cls; }
+  if (el('dir-reason-text')) el('dir-reason-text').textContent = dc.razon || 'Sin datos del mercado.';
+
+  sigs.forEach(s => setSignal(s.agent, s.signal, s.confidence, s.reason));
+
+  const bal  = last.decision?.ln_balance_sats || 0;
+  const conf = last.decision?.confianza || 0;
+  setRule('r-bal', bal>=10000);
+  setRule('r-pnl', pnl>-5);
+  setRule('r-sw', true);
+  setRule('r-mx', true);
+  setRule('r-cf', conf>=7);
+
+  const allOk = bal>=10000 && pnl>-5 && conf>=7;
+  if (el('ks-status')) { el('ks-status').textContent = allOk ? 'ARMED' : '⚠ TRIGGERED'; el('ks-status').style.color = allOk ? 'var(--green)' : 'var(--red)'; }
+
+  if (el('dot-lnd')) el('dot-lnd').className = 'led ' + (st.err>=3?'r':st.err>0?'y':'g');
+  if (el('dot-jrn')) el('dot-jrn').className = 'led g';
+
+  if (el('log-count')) el('log-count').textContent = entries.length + ' eventos';
+  if (el('log-list')) {
+    el('log-list').innerHTML = [...entries].reverse().slice(0,25).map(e => {
+      let lcls = 'ok';
+      if (e.event==='ERROR') lcls='err';
+      else if (e.result?.status==='EJECUTADO'||e.result?.status==='DRY_RUN') lcls='exec';
+      else if (e.result?.status==='SKIP') lcls='skip';
+
+      let badges = '';
+      if (e.result?.action==='VENDER_BTC')      badges += '<span class="log-badge sell">SELL</span>';
+      if (e.result?.action==='COMPRAR_BTC')     badges += '<span class="log-badge buy">BUY</span>';
+      if (e.result?.status==='DRY_RUN')         badges += '<span class="log-badge dr">DRY</span>';
+      if (e.result?.status==='SKIP')            badges += '<span class="log-badge skip">SKIP</span>';
+      if (e.event==='ERROR')                    badges += '<span class="log-badge err">ERR</span>';
+      if (e.result?.pnl_pct !== undefined) {
+        const pCls = e.result.pnl_pct >= 0 ? 'buy' : 'err';
+        badges += `<span class="log-badge ${pCls}">${e.result.pnl_pct>=0?'+':''}${e.result.pnl_pct}%</span>`;
+      }
+
+      const price = e.btc_price ? '<span class="log-p"> $'+Number(e.btc_price).toLocaleString('es-AR')+'</span>' : '';
+      const cf    = e.decision?.confianza ? ' ['+e.decision.confianza+'/10]' : '';
+
+      return `<div class="log-row ${lcls}"><span class="log-t">${fmt(e.timestamp)}</span><span class="log-ev">${e.event}</span>${price}${cf}${badges}</div>`;
+    }).join('');
+  }
+
+  const lastExec = entries.slice(-5).find(e => e.result?.status==='EJECUTADO');
+  if (lastExec && lastExec._flashed !== true) {
+    lastExec._flashed = true;
+    const flash = el('trade-flash');
+    if (flash) {
+      flash.classList.remove('fire');
+      void flash.offsetWidth;
+      flash.classList.add('fire');
+    }
+  }
+}
+
+function updateClock() {
+  if (el('hdr-clock')) el('hdr-clock').textContent = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+clockInterval = setInterval(updateClock, 1000);
+updateClock();
+
+async function refresh() {
+  try {
+    const entries = await loadJournal();
+    if (entries.length) { journal = entries; render(journal); hideJournalError(); }
+    else { showJournalError('journal.jsonl vacío o no encontrado'); }
+  } catch (e) {
+    showJournalError('Error cargando journal: ' + e.message);
+  }
+}
+
+function showJournalError(detail) {
+  if (el('dot-jrn')) el('dot-jrn').className = 'led r';
+  const overlay = document.getElementById('error-overlay');
+  if (overlay) overlay.classList.add('visible');
+  if (el('err-detail')) el('err-detail').textContent = detail || 'No se puede leer journal.jsonl';
+  if (el('status')) { el('status').textContent = '⚠ Sin conexión con journal.jsonl'; el('status').className = 'status-bar err'; }
+}
+
+function hideJournalError() {
+  if (el('dot-jrn')) el('dot-jrn').className = 'led g';
+  const overlay = document.getElementById('error-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+function announceToScreenReader(message) {
+  const announcer = document.getElementById('a11y-announcer');
+  if (announcer) {
+    announcer.textContent = '';
+    setTimeout(() => { announcer.textContent = message; }, 100);
+  }
+}
+
+// Check if announceToScreenReader is available from canvas engine, otherwise define it
+if (typeof window.announceToScreenReader === 'undefined') {
+  window.announceToScreenReader = announceToScreenReader;
+} else {
+  // Use the canvas engine version if available
+  announceToScreenReader = window.announceToScreenReader;
+}
+
+refreshInterval = setInterval(refresh, 8000);
+refresh();
+
+document.body.addEventListener('dragover', e => e.preventDefault());
+document.body.addEventListener('drop', async e => {
+  e.preventDefault();
+  const f = [...e.dataTransfer.files].find(f => f.name.includes('journal'));
+  if (!f) return;
+  const text = await f.text();
+  journal = text.trim().split('\n')
+    .filter(l => l.trim())
+    .map(l => { try { return JSON.parse(l); } catch { return null; } })
+    .filter(Boolean);
+  render(journal);
+});
+</script>
+
+<!-- ═══════════════════════════════════════════
+     2D CANVAS ENGINE (with cache-busting)
+═══════════════════════════════════════════ -->
+<script type="module">
+const status = document.getElementById('status');
+try {
+  const t = Date.now();
+  await import(`./js/main.js?v=${t}`);
+  if (status) {
+    status.textContent = '✓ V7 ACTIVO · Canvas 640x480 + 5 personajes RPG · Journal poll cada 8s';
+    status.className = 'status-bar ok';
+  }
+  console.log('[V7] Canvas engine loaded successfully');
+} catch (err) {
+  console.error('[V7] Canvas engine failed to load:', err);
+  if (status) {
+    status.textContent = '⚠ Canvas engine no cargó: ' + err.message + ' — UI RPG sigue activa';
+    status.className = 'status-bar err';
+  }
+}
+</script>
+
+</body>
+</html>

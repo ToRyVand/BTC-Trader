@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ ARK CAPITAL — TRADING FLOOR 98</title>
+
+<!-- SNES.css Framework -->
+<link rel="stylesheet" href="https://unpkg.com/snes.css@1.0.1/dist/snes.min.css">
+
+<!-- Press Start 2P Font -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  font-family: 'Press Start 2P', monospace;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+  color: #fff;
+}
+
+/* Header */
+#header {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-bottom: 4px solid #4a9eff;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+#logo {
+  font-size: 12px;
+  color: #4ade80;
+  text-shadow: 2px 2px 0 #000;
+}
+
+#ticker {
+  display: flex;
+  gap: 20px;
+  font-size: 8px;
+}
+
+.ticker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ticker-label {
+  color: #888;
+}
+
+.ticker-value {
+  color: #4ade80;
+  font-size: 10px;
+}
+
+.ticker-value.down {
+  color: #f87171;
+}
+
+#status-leds {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.led {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #333;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.led.green {
+  background: #4ade80;
+  color: #4ade80;
+}
+
+.led.yellow {
+  background: #fbbf24;
+  color: #fbbf24;
+}
+
+.led.red {
+  background: #f87171;
+  color: #f87171;
+}
+
+.led-label {
+  font-size: 6px;
+  color: #888;
+}
+
+/* Main Layout */
+#main-container {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Director Panel */
+#director-panel {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  min-width: 280px;
+  max-width: 280px;
+}
+
+.panel-title {
+  font-size: 10px;
+  color: #4a9eff;
+  margin-bottom: 12px;
+  text-align: center;
+  border-bottom: 2px solid #4a9eff;
+  padding-bottom: 8px;
+}
+
+.director-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 7px;
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #333;
+}
+
+.info-label {
+  color: #888;
+}
+
+.info-value {
+  color: #4ade80;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stat-box {
+  background: #0a0a0a;
+  border: 2px solid #333;
+  padding: 8px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 6px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 10px;
+  color: #4ade80;
+}
+
+.stat-value.warning {
+  color: #fbbf24;
+}
+
+.stat-value.danger {
+  color: #f87171;
+}
+
+/* Canvas Container */
+#canvas-container {
+  flex: 1;
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.canvas-header {
+  font-size: 8px;
+  color: #888;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+
+#room {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 480px;
+}
+
+#trading-floor-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #4a9eff;
+  background: #000;
+  display: block;
+  box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+}
+
+/* Sidebar */
+#sidebar {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  min-width: 280px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* KPI Panel */
+.kpi-panel {
+  background: #0a0a0a;
+  border: 2px solid #333;
+  padding: 12px;
+}
+
+.kpi-title {
+  font-size: 8px;
+  color: #4a9eff;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.kpi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 7px;
+}
+
+.kpi-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #222;
+}
+
+/* Battle Log */
+#battle-log {
+  flex: 1;
+  background: #0a0a0a;
+  border: 2px solid #333;
+  padding: 12px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.log-title {
+  font-size: 8px;
+  color: #4a9eff;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.log-entry {
+  font-size: 6px;
+  color: #888;
+  padding: 4px 0;
+  border-bottom: 1px solid #222;
+}
+
+.log-entry.buy {
+  color: #4ade80;
+}
+
+.log-entry.sell {
+  color: #f87171;
+}
+
+.log-entry.hold {
+  color: #fbbf24;
+}
+
+.log-time {
+  color: #555;
+  margin-right: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  #main-container {
+    flex-direction: column;
+  }
+  
+  #director-panel,
+  #sidebar {
+    max-width: 100%;
+  }
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.led {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(74, 158, 255, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(74, 158, 255, 0.6); }
+}
+
+#trading-floor-canvas {
+  animation: glow 3s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div id="logo">⚔ ARK CAPITAL — TRADING FLOOR 98</div>
+  
+  <div id="ticker">
+    <div class="ticker-item">
+      <span class="ticker-label">BTC/USDT</span>
+      <span class="ticker-value" id="btc-price">$94,250.00</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">24H CHANGE</span>
+      <span class="ticker-value" id="btc-change">+2.45%</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">VOLUME</span>
+      <span class="ticker-value">$1.2B</span>
+    </div>
+  </div>
+  
+  <div id="status-leds">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="led green"></div>
+      <span class="led-label">LND</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="led green"></div>
+      <span class="led-label">BOLTZ</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="led yellow"></div>
+      <span class="led-label">AI</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Container -->
+<div id="main-container">
+  
+  <!-- Director Panel (Left) -->
+  <div id="director-panel">
+    <div class="panel-title">[ DIRECTOR ]</div>
+    
+    <div class="director-info">
+      <div class="info-row">
+        <span class="info-label">NOMBRE:</span>
+        <span class="info-value">EL DIRECTOR</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">AI BRAIN:</span>
+        <span class="info-value">CLAUDE SONNET</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">NIVEL:</span>
+        <span class="info-value">85</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">CONFIANZA:</span>
+        <span class="info-value">1250</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">XP:</span>
+        <span class="info-value">42 TRADES</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">ESTADO:</span>
+        <span class="info-value">ESPERANDO</span>
+      </div>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">WIN RATE</div>
+        <div class="stat-value">68%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">PROFIT</div>
+        <div class="stat-value">+12.5%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">SHARPE</div>
+        <div class="stat-value">1.85</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">MAX DD</div>
+        <div class="stat-value warning">-5.2%</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Canvas Container (Center) -->
+  <div id="canvas-container">
+    <div class="canvas-header">
+      🎮 TRADING FLOOR — 16-BIT EDITION — 5 AGENTS ACTIVOS
+    </div>
+    
+    <div id="room">
+      <div id="agent-grid">
+        <p style="color:#888;font-size:8px;">Inicializando canvas...</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sidebar (Right) -->
+  <div id="sidebar">
+    
+    <!-- KPI Panel -->
+    <div class="kpi-panel">
+      <div class="kpi-title">⚡ MÉTRICAS EN VIVO</div>
+      <div class="kpi-list">
+        <div class="kpi-item">
+          <span style="color:#888;">Balance:</span>
+          <span style="color:#4ade80;">$50,000</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#888;">Posición:</span>
+          <span style="color:#4ade80;">0.25 BTC</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#888;">P&L Hoy:</span>
+          <span style="color:#4ade80;">+$1,250</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#888;">Trades:</span>
+          <span style="color:#888;">8</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#888;">Riesgo:</span>
+          <span style="color:#fbbf24;">MEDIO</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Agents Status -->
+    <div class="kpi-panel">
+      <div class="kpi-title">👥 ESTADO AGENTES</div>
+      <div class="kpi-list">
+        <div class="kpi-item">
+          <span style="color:#5555ff;">TICKER:</span>
+          <span style="color:#888;">ANALIZANDO</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#55ff55;">LA MAQUINA:</span>
+          <span style="color:#888;">CALCULANDO</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#ffff55;">ECONOMISTA:</span>
+          <span style="color:#888;">LEYENDO</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#ff55ff;">PERIODISTA:</span>
+          <span style="color:#888;">BUSCANDO</span>
+        </div>
+        <div class="kpi-item">
+          <span style="color:#ff5555;">JEFE RIESGO:</span>
+          <span style="color:#4ade80;">APROBADO</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Battle Log -->
+    <div id="battle-log">
+      <div class="log-title">📜 REGISTRO DE BATALLA</div>
+      <div class="log-entry">
+        <span class="log-time">14:32:15</span>
+        Sistema iniciado
+      </div>
+      <div class="log-entry buy">
+        <span class="log-time">14:32:18</span>
+        TICKER: Señal BUY detectada
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:32:20</span>
+        LA MAQUINA: Confirmando patrón
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:32:22</span>
+        ECONOMISTA: Fundamentales OK
+      </div>
+      <div class="log-entry hold">
+        <span class="log-time">14:32:25</span>
+        DIRECTOR: Esperando consenso
+      </div>
+    </div>
+    
+  </div>
+  
+</div>
+
+<script type="module">
+console.log('[V4] Starting 16-bit Trading Floor Dashboard...');
+
+// Add timestamp to force reload of modules
+const timestamp = Date.now();
+
+try {
+  // Import main.js with cache busting
+  console.log('[V4] Importing main.js...');
+  const mainModule = await import(`./js/main.js?v=${timestamp}`);
+  console.log('[V4] main.js imported successfully');
+  
+  // Wait for canvas creation
+  setTimeout(() => {
+    const canvas = document.getElementById('trading-floor-canvas');
+    console.log('[V4] Canvas check:', canvas);
+    
+    if (canvas) {
+      console.log('[V4] ✓ Canvas found!', canvas.width, 'x', canvas.height);
+      
+      // Update canvas header
+      const header = document.querySelector('.canvas-header');
+      if (header) {
+        header.textContent = `🎮 TRADING FLOOR — ${canvas.width}x${canvas.height}px — 5 AGENTS ACTIVOS — 60 FPS`;
+      }
+    } else {
+      console.error('[V4] ✗ Canvas NOT found');
+    }
+  }, 1000);
+  
+  // Simulate live price updates
+  setInterval(() => {
+    const priceEl = document.getElementById('btc-price');
+    const changeEl = document.getElementById('btc-change');
+    
+    if (priceEl && changeEl) {
+      const basePrice = 94250;
+      const variation = (Math.random() - 0.5) * 500;
+      const newPrice = basePrice + variation;
+      const change = ((variation / basePrice) * 100).toFixed(2);
+      
+      priceEl.textContent = `$${newPrice.toFixed(2)}`;
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${change}%`;
+      changeEl.className = change >= 0 ? 'ticker-value' : 'ticker-value down';
+    }
+  }, 3000);
+  
+} catch (error) {
+  console.error('[V4] Error:', error);
+}
+</script>
+
+</body>
+</html>

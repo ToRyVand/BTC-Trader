@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ ARK CAPITAL — TRADING FLOOR 98 v3</title>
+
+<!-- SNES.css Framework -->
+<link rel="stylesheet" href="https://unpkg.com/snes.css@1.0.1/dist/snes.min.css">
+
+<!-- Press Start 2P Font -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+body {
+  background: #000;
+  font-family: 'Press Start 2P', monospace;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+}
+
+#hdr {
+  background: #1a1a1a;
+  border-bottom: 4px solid #4a9eff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+#logo {
+  font-size: 14px;
+  color: #4ade80;
+}
+
+.status {
+  padding: 12px;
+  background: #1a1a1a;
+  border: 3px solid #4ade80;
+  margin: 16px;
+  text-align: center;
+  font-size: 8px;
+  color: #4ade80;
+}
+
+#canvas-container {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  margin: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+}
+
+#room {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#trading-floor-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #888;
+  background: #000;
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div id="logo">⚔ ARK CAPITAL 98 - v3 (16-bit sprites)</div>
+</div>
+
+<div class="status" id="status">Inicializando v3...</div>
+
+<div id="canvas-container">
+  <div id="room">
+    <div id="director" style="display:none;"></div>
+    <div id="agent-grid">
+      <p style="color:#888;font-size:8px;">Cargando canvas con sprites 16-bit...</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+console.log('[V3] Starting with 16-bit sprites...');
+
+// Add timestamp to force reload of modules
+const timestamp = Date.now();
+
+try {
+  document.getElementById('status').textContent = 'Cargando módulos v3...';
+  
+  // Import main.js with cache busting
+  console.log('[V3] Importing main.js...');
+  const mainModule = await import(`./js/main.js?v=${timestamp}`);
+  console.log('[V3] main.js imported');
+  
+  // Wait for canvas creation
+  setTimeout(() => {
+    const canvas = document.getElementById('trading-floor-canvas');
+    console.log('[V3] Canvas check:', canvas);
+    
+    if (canvas) {
+      console.log('[V3] ✓ Canvas found!', canvas.width, 'x', canvas.height);
+      document.getElementById('status').textContent = `✓ Canvas v3: ${canvas.width}x${canvas.height}px - 16-bit sprites`;
+    } else {
+      console.log('[V3] ✗ Canvas NOT found');
+      document.getElementById('status').textContent = '✗ Canvas no creado';
+      document.getElementById('status').style.borderColor = '#f87171';
+      document.getElementById('status').style.color = '#f87171';
+    }
+  }, 1500);
+  
+} catch (error) {
+  console.error('[V3] Error:', error);
+  document.getElementById('status').textContent = '✗ Error: ' + error.message;
+  document.getElementById('status').style.borderColor = '#f87171';
+  document.getElementById('status').style.color = '#f87171';
+}
+</script>
+
+</body>
+</html>

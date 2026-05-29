@@ -1,0 +1,681 @@
+/**
+ * SceneRenderer - Isometric Trading Office like Game Dev Tycoon
+ */
+export class SceneRenderer {
+  constructor(config) {
+    this.config = config;
+    this.ts = config.tileSize;
+    // Isometric dimensions
+    this.isoW = this.ts;  // Width of iso tile
+    this.isoH = this.ts / 2;  // Height of iso tile
+    this.wallH = this.ts * 0.8; // Wall height
+  }
+
+  // Convert grid to isometric screen coords
+  toIso(x, y) {
+    const isoX = (x - y) * this.isoW / 2;
+    const isoY = (x + y) * this.isoH / 2;
+    // Center the isometric grid - Game Dev Tycoon style (fills entire canvas)
+    return { x: isoX + 480, y: isoY + 50 };
+  }
+
+  renderFloor(ctx) {
+    this.renderFloorTiles(ctx);
+    this.renderWalls(ctx);
+    this.renderAllFurniture(ctx);
+  }
+
+  // Render just the floor tiles
+  renderFloorTiles(ctx) {
+    const gw = this.config.gridWidth;
+    const gh = this.config.gridHeight;
+
+    for (let y = 0; y < gh; y++) {
+      for (let x = 0; x < gw; x++) {
+        this.renderIsoTile(ctx, x, y);
+      }
+    }
+  }
+
+  // Get furniture list for z-sorted rendering
+  getFurnitureList() {
+    return [
+      // Fila superior de escritorios (bien espaciados)
+      { type: 'desk', x: 6, y: 4, color: '#4a9eff', name: 'TECH' },
+      { type: 'desk', x: 11, y: 4, color: '#4ade80', name: 'QUANT' },
+      { type: 'desk', x: 16, y: 4, color: '#fbbf24', name: 'FUND' },
+      // Fila inferior de escritorios
+      { type: 'desk', x: 6, y: 11, color: '#a855f7', name: 'SENT' },
+      { type: 'desk', x: 16, y: 11, color: '#f87171', name: 'RISK' },
+      // Mesa de reuniones en el centro
+      { type: 'table', x: 12, y: 8 },
+      // Plantas decorativas
+      { type: 'plant', x: 3, y: 15 },
+      { type: 'plant', x: 20, y: 15 },
+      { type: 'plant', x: 3, y: 3 },
+      { type: 'plant', x: 20, y: 3 },
+      { type: 'plant', x: 10, y: 2 },
+      { type: 'plant', x: 14, y: 2 },
+      // Watercooler
+      { type: 'watercooler', x: 20, y: 8 },
+      // Pantalla grande en la pared trasera
+      { type: 'screen', x: 12, y: 2 }
+      // TEMPORALMENTE COMENTADOS - DESCOMENTAR DESPUÉS DE DEBUG
+      // Estanterías en las paredes
+      // { type: 'bookshelf', x: 2, y: 2 },
+      // { type: 'bookshelf', x: 21, y: 2 },
+      // { type: 'bookshelf', x: 2, y: 8 },
+      // { type: 'bookshelf', x: 21, y: 13 },
+      // Archivadores
+      // { type: 'cabinet', x: 2, y: 5 },
+      // { type: 'cabinet', x: 21, y: 10 },
+      // Sillas extras alrededor de la mesa
+      // { type: 'chair', x: 10, y: 8 },
+      // { type: 'chair', x: 14, y: 8 },
+      // { type: 'chair', x: 12, y: 6 },
+      // { type: 'chair', x: 12, y: 10 },
+      // Cuadros/posters en las paredes
+      // { type: 'poster', x: 5, y: 1 },
+      // { type: 'poster', x: 18, y: 1 }
+    ];
+  }
+
+  // Render a single furniture item (for z-sorted rendering)
+  renderFurnitureItem(ctx, item) {
+    switch(item.type) {
+      case 'desk':
+        this.renderIsoDesk(ctx, item.x, item.y, item);
+        break;
+      case 'table':
+        this.renderIsoTable(ctx, item.x, item.y);
+        break;
+      case 'plant':
+        this.renderIsoPlant(ctx, item.x, item.y);
+        break;
+      case 'watercooler':
+        this.renderIsoWaterCooler(ctx, item.x, item.y);
+        break;
+      case 'screen':
+        this.renderIsoScreen(ctx, item.x, item.y);
+        break;
+      case 'bookshelf':
+        this.renderIsoBookshelf(ctx, item.x, item.y);
+        break;
+      case 'cabinet':
+        this.renderIsoCabinet(ctx, item.x, item.y);
+        break;
+      case 'chair':
+        this.renderIsoChair(ctx, item.x, item.y);
+        break;
+      case 'poster':
+        this.renderIsoPoster(ctx, item.x, item.y);
+        break;
+    }
+  }
+
+  renderIsoTile(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+    const hw = this.isoW / 2;
+    const hh = this.isoH / 2;
+
+    // Diamond shape
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y - hh);
+    ctx.lineTo(pos.x + hw, pos.y);
+    ctx.lineTo(pos.x, pos.y + hh);
+    ctx.lineTo(pos.x - hw, pos.y);
+    ctx.closePath();
+
+    // Wood floor pattern (like Game Dev Tycoon)
+    const woodBase = (gx + gy) % 3 === 0 ? '#8B6F47' : (gx + gy) % 2 === 0 ? '#9B7F57' : '#AB8F67';
+    ctx.fillStyle = woodBase;
+    ctx.fill();
+
+    // Wood grain lines
+    ctx.strokeStyle = 'rgba(101,67,33,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pos.x - hw + 5, pos.y - 2);
+    ctx.lineTo(pos.x + hw - 5, pos.y - 2);
+    ctx.stroke();
+
+    // Tile border (subtle)
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y - hh);
+    ctx.lineTo(pos.x + hw, pos.y);
+    ctx.lineTo(pos.x, pos.y + hh);
+    ctx.lineTo(pos.x - hw, pos.y);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  renderWalls(ctx) {
+    const ts = this.ts;
+    const gw = this.config.gridWidth;
+    const gh = this.config.gridHeight;
+
+    // Back wall (top edge) - Color azul como en Game Dev Tycoon
+    const backLeft = this.toIso(0, 0);
+    const backRight = this.toIso(gw - 1, 0);
+
+    // Draw back wall with height
+    ctx.beginPath();
+    ctx.moveTo(backLeft.x, backLeft.y - this.wallH);
+    ctx.lineTo(backRight.x + this.isoW/2, backRight.y - this.wallH - this.isoH/2);
+    ctx.lineTo(backRight.x + this.isoW/2, backRight.y);
+    ctx.lineTo(backLeft.x, backLeft.y);
+    ctx.closePath();
+    
+    // Gradient azul para pared trasera
+    const gradBack = ctx.createLinearGradient(backLeft.x, backLeft.y - this.wallH, backLeft.x, backLeft.y);
+    gradBack.addColorStop(0, '#5B9BD5');
+    gradBack.addColorStop(1, '#4A8BC2');
+    ctx.fillStyle = gradBack;
+    ctx.fill();
+    
+    ctx.strokeStyle = '#3A7BA2';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Left wall - Color naranja/terracota como en Game Dev Tycoon
+    const leftBack = this.toIso(0, 0);
+    const leftFront = this.toIso(0, gh - 1);
+
+    ctx.beginPath();
+    ctx.moveTo(leftBack.x, leftBack.y - this.wallH);
+    ctx.lineTo(leftFront.x - this.isoW/2, leftFront.y - this.wallH + this.isoH/2);
+    ctx.lineTo(leftFront.x - this.isoW/2, leftFront.y);
+    ctx.lineTo(leftBack.x, leftBack.y);
+    ctx.closePath();
+    
+    // Gradient naranja para pared izquierda
+    const gradLeft = ctx.createLinearGradient(leftBack.x, leftBack.y - this.wallH, leftBack.x, leftBack.y);
+    gradLeft.addColorStop(0, '#E67E50');
+    gradLeft.addColorStop(1, '#D66E40');
+    ctx.fillStyle = gradLeft;
+    ctx.fill();
+    
+    ctx.strokeStyle = '#C65E30';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Right wall - Color naranja más claro
+    const rightBack = this.toIso(gw - 1, 0);
+    const rightFront = this.toIso(gw - 1, gh - 1);
+
+    ctx.beginPath();
+    ctx.moveTo(rightBack.x + this.isoW/2, rightBack.y - this.wallH - this.isoH/2);
+    ctx.lineTo(rightFront.x, rightFront.y - this.wallH);
+    ctx.lineTo(rightFront.x, rightFront.y);
+    ctx.lineTo(rightBack.x + this.isoW/2, rightBack.y);
+    ctx.closePath();
+    
+    // Gradient naranja claro para pared derecha
+    const gradRight = ctx.createLinearGradient(rightBack.x, rightBack.y - this.wallH, rightBack.x, rightBack.y);
+    gradRight.addColorStop(0, '#F08A60');
+    gradRight.addColorStop(1, '#E07A50');
+    ctx.fillStyle = gradRight;
+    ctx.fill();
+    
+    ctx.strokeStyle = '#D06A40';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Baseboards (zócalos)
+    ctx.strokeStyle = '#8B6F47';
+    ctx.lineWidth = 4;
+    // Back baseboard
+    ctx.beginPath();
+    ctx.moveTo(backLeft.x, backLeft.y - 4);
+    ctx.lineTo(backRight.x + this.isoW/2, backRight.y - 4);
+    ctx.stroke();
+  }
+
+  renderAllFurniture(ctx) {
+    // Furniture list with positions (sorted by depth for proper rendering)
+    const furniture = [
+      // Fila superior de escritorios (bien espaciados)
+      { type: 'desk', x: 6, y: 4, color: '#4a9eff', name: 'TECH' },
+      { type: 'desk', x: 11, y: 4, color: '#4ade80', name: 'QUANT' },
+      { type: 'desk', x: 16, y: 4, color: '#fbbf24', name: 'FUND' },
+      // Fila inferior de escritorios
+      { type: 'desk', x: 6, y: 11, color: '#a855f7', name: 'SENT' },
+      { type: 'desk', x: 16, y: 11, color: '#f87171', name: 'RISK' },
+      // Mesa de reuniones en el centro
+      { type: 'table', x: 12, y: 8 },
+      // Plantas decorativas
+      { type: 'plant', x: 3, y: 15 },
+      { type: 'plant', x: 20, y: 15 },
+      { type: 'plant', x: 3, y: 3 },
+      { type: 'plant', x: 20, y: 3 },
+      { type: 'plant', x: 10, y: 2 },
+      { type: 'plant', x: 14, y: 2 },
+      // Watercooler
+      { type: 'watercooler', x: 20, y: 8 },
+      // Pantalla grande en la pared trasera
+      { type: 'screen', x: 12, y: 2 }
+    ];
+
+    // Sort by depth (y + x) for proper z-ordering
+    furniture.sort((a, b) => (a.y + a.x) - (b.y + b.x));
+
+    furniture.forEach(item => {
+      switch(item.type) {
+        case 'desk':
+          this.renderIsoDesk(ctx, item.x, item.y, item);
+          break;
+        case 'table':
+          this.renderIsoTable(ctx, item.x, item.y);
+          break;
+        case 'plant':
+          this.renderIsoPlant(ctx, item.x, item.y);
+          break;
+        case 'watercooler':
+          this.renderIsoWaterCooler(ctx, item.x, item.y);
+          break;
+        case 'screen':
+          this.renderIsoScreen(ctx, item.x, item.y);
+          break;
+        case 'bookshelf':
+          this.renderIsoBookshelf(ctx, item.x, item.y);
+          break;
+        case 'cabinet':
+          this.renderIsoCabinet(ctx, item.x, item.y);
+          break;
+        case 'chair':
+          this.renderIsoChair(ctx, item.x, item.y);
+          break;
+        case 'poster':
+          this.renderIsoPoster(ctx, item.x, item.y);
+          break;
+      }
+    });
+  }
+
+  renderIsoDesk(ctx, gx, gy, desk) {
+    const pos = this.toIso(gx, gy);
+    const hw = this.isoW / 2;
+    const hh = this.isoH / 2;
+    const h = this.ts * 0.6; // Desk height
+
+    // Desk shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.moveTo(pos.x - hw + 4, pos.y + hh - 2);
+    ctx.lineTo(pos.x + hw + 4, pos.y + hh - 2);
+    ctx.lineTo(pos.x + hw - 4, pos.y + hh + 6);
+    ctx.lineTo(pos.x - hw - 4, pos.y + hh + 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Desk top (isometric rectangle)
+    ctx.beginPath();
+    ctx.moveTo(pos.x - hw + 4, pos.y - h);
+    ctx.lineTo(pos.x + hw - 4, pos.y - h);
+    ctx.lineTo(pos.x + hw, pos.y - hh);
+    ctx.lineTo(pos.x - hw, pos.y - hh);
+    ctx.closePath();
+    ctx.fillStyle = '#5c4033';
+    ctx.fill();
+    ctx.strokeStyle = '#4a3728';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Desk front face
+    ctx.beginPath();
+    ctx.moveTo(pos.x - hw, pos.y - hh);
+    ctx.lineTo(pos.x + hw, pos.y - hh);
+    ctx.lineTo(pos.x + hw - 4, pos.y);
+    ctx.lineTo(pos.x - hw + 4, pos.y);
+    ctx.closePath();
+    ctx.fillStyle = '#4a3728';
+    ctx.fill();
+
+    // Monitor
+    const mx = pos.x;
+    const my = pos.y - h - 15;
+
+    // Monitor stand
+    ctx.fillStyle = '#333';
+    ctx.fillRect(mx - 2, my + 10, 4, 10);
+
+    // Monitor body (rectangle)
+    ctx.fillStyle = '#111';
+    ctx.fillRect(mx - 10, my - 8, 20, 18);
+
+    // Screen glow
+    const grad = ctx.createLinearGradient(mx - 8, my - 6, mx - 8, my + 8);
+    grad.addColorStop(0, desk.color);
+    grad.addColorStop(1, '#fff');
+    ctx.fillStyle = grad;
+    ctx.fillRect(mx - 8, my - 6, 16, 14);
+
+    // Screen reflection
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(mx - 8, my - 6, 16, 4);
+
+    // Chair (behind desk)
+    const cx = pos.x;
+    const cy = pos.y + hh + 8;
+
+    // Chair shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 12, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chair seat
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 2, 10, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chair back
+    ctx.fillStyle = '#666';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 12, 8, 10, 0, 0, Math.PI);
+    ctx.fill();
+
+    // Name tag
+    ctx.fillStyle = '#fff';
+    ctx.font = '6px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(desk.name, pos.x, pos.y - h - 20);
+  }
+
+  renderIsoTable(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+    const hw = this.isoW;
+    const hh = this.isoH;
+    const h = this.ts * 0.4;
+
+    // Table shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + hh/2, hw, hh/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Table top
+    ctx.beginPath();
+    ctx.moveTo(pos.x - hw, pos.y - h);
+    ctx.lineTo(pos.x + hw, pos.y - h);
+    ctx.lineTo(pos.x + hw - 4, pos.y - h + hh);
+    ctx.lineTo(pos.x - hw + 4, pos.y - h + hh);
+    ctx.closePath();
+    ctx.fillStyle = '#6c5043';
+    ctx.fill();
+    ctx.strokeStyle = '#5c4033';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Table legs
+    ctx.fillStyle = '#444';
+    ctx.fillRect(pos.x - hw + 4, pos.y - h + hh, 6, 12);
+    ctx.fillRect(pos.x + hw - 10, pos.y - h + hh, 6, 12);
+
+    // Papers on table
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(pos.x - 8, pos.y - h + 2, 16, 8);
+    ctx.fillStyle = '#ccc';
+    ctx.fillRect(pos.x + 4, pos.y - h + 6, 10, 6);
+  }
+
+  renderIsoPlant(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+
+    // Pot shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 4, 10, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pot
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.moveTo(pos.x - 6, pos.y);
+    ctx.lineTo(pos.x - 4, pos.y - 12);
+    ctx.lineTo(pos.x + 4, pos.y - 12);
+    ctx.lineTo(pos.x + 6, pos.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Leaves (layered)
+    const leaves = [
+      { x: 0, y: -16, w: 12, h: 16 },
+      { x: -6, y: -14, w: 10, h: 14 },
+      { x: 6, y: -14, w: 10, h: 14 },
+      { x: -3, y: -20, w: 8, h: 12 }
+    ];
+
+    leaves.forEach(leaf => {
+      ctx.fillStyle = '#228B22';
+      ctx.beginPath();
+      ctx.ellipse(pos.x + leaf.x, pos.y + leaf.y, leaf.w/2, leaf.h/2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Leaf highlights
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x - 2, pos.y - 16, 4, 8, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  renderIsoWaterCooler(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 4, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Base
+    ctx.fillStyle = '#777';
+    ctx.fillRect(pos.x - 8, pos.y - 4, 16, 8);
+
+    // Water bottle
+    const grad = ctx.createLinearGradient(pos.x, pos.y - 24, pos.x, pos.y - 4);
+    grad.addColorStop(0, '#87CEEB');
+    grad.addColorStop(1, '#4682B4');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(pos.x - 6, pos.y - 4);
+    ctx.lineTo(pos.x - 4, pos.y - 24);
+    ctx.lineTo(pos.x + 4, pos.y - 24);
+    ctx.lineTo(pos.x + 6, pos.y - 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(pos.x - 3, pos.y - 20, 2, 14);
+  }
+
+  renderIsoScreen(ctx, gx, gy) {
+    // Screen on back wall
+    const pos = this.toIso(gx, gy);
+    const w = 80;
+    const h = 40;
+
+    // Screen frame
+    ctx.fillStyle = '#111';
+    ctx.fillRect(pos.x - w/2, pos.y - this.wallH - h, w, h);
+
+    // Screen glow
+    const grad = ctx.createLinearGradient(pos.x - w/2, pos.y - this.wallH - h, pos.x - w/2, pos.y - this.wallH);
+    grad.addColorStop(0, '#0a3a0a');
+    grad.addColorStop(1, '#1a5a1a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(pos.x - w/2 + 4, pos.y - this.wallH - h + 4, w - 8, h - 8);
+
+    // Chart line
+    ctx.strokeStyle = '#4ade80';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pos.x - w/2 + 10, pos.y - this.wallH - 10);
+    ctx.lineTo(pos.x - w/2 + 25, pos.y - this.wallH - 20);
+    ctx.lineTo(pos.x - w/2 + 40, pos.y - this.wallH - 15);
+    ctx.lineTo(pos.x - w/2 + 55, pos.y - this.wallH - 25);
+    ctx.lineTo(pos.x - w/2 + 70, pos.y - this.wallH - 20);
+    ctx.stroke();
+
+    // "BTC/USD" label
+    ctx.fillStyle = '#fff';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('BTC/USD', pos.x, pos.y - this.wallH - h - 8);
+  }
+
+  renderDesks(ctx, deskPositions) {}
+  renderMeetingTable(ctx, center) {}
+  renderDecorations(ctx, decorations) {}
+}
+
+  // === NEW FURNITURE TYPES ===
+
+  renderIsoBookshelf(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+    const h = this.ts * 0.9; // Bookshelf height
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 4, 12, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bookshelf body (wood)
+    ctx.fillStyle = '#5c4033';
+    ctx.fillRect(pos.x - 14, pos.y - h, 28, h);
+    
+    // Shelves (horizontal lines)
+    ctx.strokeStyle = '#4a3728';
+    ctx.lineWidth = 2;
+    for (let i = 1; i <= 3; i++) {
+      const shelfY = pos.y - h + (h / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(pos.x - 14, shelfY);
+      ctx.lineTo(pos.x + 14, shelfY);
+      ctx.stroke();
+    }
+
+    // Books (colorful rectangles)
+    const bookColors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+    for (let shelf = 0; shelf < 3; shelf++) {
+      const shelfY = pos.y - h + 8 + (shelf * (h / 4));
+      for (let book = 0; book < 5; book++) {
+        const bookX = pos.x - 12 + (book * 5);
+        ctx.fillStyle = bookColors[(shelf + book) % bookColors.length];
+        ctx.fillRect(bookX, shelfY, 4, 8);
+      }
+    }
+
+    // Frame
+    ctx.strokeStyle = '#3a2718';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pos.x - 14, pos.y - h, 28, h);
+  }
+
+  renderIsoCabinet(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+    const h = this.ts * 0.7; // Cabinet height
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 4, 10, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cabinet body (metal gray)
+    ctx.fillStyle = '#7f8c8d';
+    ctx.fillRect(pos.x - 12, pos.y - h, 24, h);
+
+    // Drawers (3 drawers)
+    ctx.strokeStyle = '#5a6568';
+    ctx.lineWidth = 2;
+    for (let i = 1; i <= 2; i++) {
+      const drawerY = pos.y - h + (h / 3) * i;
+      ctx.beginPath();
+      ctx.moveTo(pos.x - 12, drawerY);
+      ctx.lineTo(pos.x + 12, drawerY);
+      ctx.stroke();
+    }
+
+    // Drawer handles
+    ctx.fillStyle = '#34495e';
+    for (let i = 0; i < 3; i++) {
+      const handleY = pos.y - h + 8 + (i * (h / 3));
+      ctx.fillRect(pos.x - 2, handleY, 4, 2);
+    }
+
+    // Frame
+    ctx.strokeStyle = '#5a6568';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pos.x - 12, pos.y - h, 24, h);
+  }
+
+  renderIsoChair(ctx, gx, gy) {
+    const pos = this.toIso(gx, gy);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y + 2, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chair seat
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.ellipse(pos.x, pos.y - 8, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chair back
+    ctx.fillStyle = '#666';
+    ctx.fillRect(pos.x - 8, pos.y - 20, 16, 12);
+    
+    // Chair legs (4 simple lines)
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pos.x - 6, pos.y - 8);
+    ctx.lineTo(pos.x - 6, pos.y);
+    ctx.moveTo(pos.x + 6, pos.y - 8);
+    ctx.lineTo(pos.x + 6, pos.y);
+    ctx.stroke();
+  }
+
+  renderIsoPoster(ctx, gx, gy) {
+    // Poster on back wall
+    const pos = this.toIso(gx, gy);
+    const w = 30;
+    const h = 40;
+
+    // Poster frame
+    ctx.fillStyle = '#222';
+    ctx.fillRect(pos.x - w/2 - 2, pos.y - this.wallH - h - 2, w + 4, h + 4);
+
+    // Poster content (Bitcoin/Trading themed)
+    const grad = ctx.createLinearGradient(pos.x - w/2, pos.y - this.wallH - h, pos.x - w/2, pos.y - this.wallH);
+    grad.addColorStop(0, '#f39c12');
+    grad.addColorStop(1, '#e67e22');
+    ctx.fillStyle = grad;
+    ctx.fillRect(pos.x - w/2, pos.y - this.wallH - h, w, h);
+
+    // Bitcoin symbol (₿)
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('₿', pos.x, pos.y - this.wallH - h/2 + 8);
+
+    // "TO THE MOON" text
+    ctx.font = 'bold 6px monospace';
+    ctx.fillText('TO THE', pos.x, pos.y - this.wallH - 10);
+    ctx.fillText('MOON', pos.x, pos.y - this.wallH - 4);
+  }
+
+  renderDesks(ctx, deskPositions) {}
+  renderMeetingTable(ctx, center) {}
+  renderDecorations(ctx, decorations) {}
+}

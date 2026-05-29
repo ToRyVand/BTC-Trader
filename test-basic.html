@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Test Básico</title>
+<style>
+body {
+  background: #000;
+  color: #0f0;
+  font-family: monospace;
+  padding: 20px;
+}
+#log {
+  background: #111;
+  border: 2px solid #0f0;
+  padding: 10px;
+  margin: 10px 0;
+}
+.log-line {
+  margin: 5px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>Test Básico - Sin ES6 Modules</h1>
+
+<div id="log">
+  <div class="log-line">Esperando...</div>
+</div>
+
+<canvas id="test-canvas" width="640" height="480" style="border:2px solid #0f0;background:#000;"></canvas>
+
+<script>
+// NO ES6 modules - JavaScript puro
+const log = document.getElementById('log');
+
+function addLog(msg) {
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.textContent = msg;
+  log.appendChild(line);
+  console.log(msg);
+}
+
+addLog('[Test] Script ejecutándose...');
+addLog('[Test] Navegador: ' + navigator.userAgent.substring(0, 50));
+
+// Test canvas
+const canvas = document.getElementById('test-canvas');
+if (canvas) {
+  addLog('[Test] ✓ Canvas encontrado');
+  const ctx = canvas.getContext('2d');
+  
+  // Draw something
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(10, 10, 100, 100);
+  ctx.fillStyle = '#fff';
+  ctx.font = '20px monospace';
+  ctx.fillText('FUNCIONA!', 120, 60);
+  
+  addLog('[Test] ✓ Canvas renderizado');
+} else {
+  addLog('[Test] ✗ Canvas NO encontrado');
+}
+
+// Test if ES6 modules are supported
+if ('noModule' in HTMLScriptElement.prototype) {
+  addLog('[Test] ✓ ES6 modules soportados');
+} else {
+  addLog('[Test] ✗ ES6 modules NO soportados');
+}
+
+addLog('[Test] Completado');
+</script>
+
+</body>
+</html>

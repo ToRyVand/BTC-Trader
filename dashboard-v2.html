@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ ARK CAPITAL — TRADING FLOOR 98</title>
+
+<!-- SNES.css Framework -->
+<link rel="stylesheet" href="https://unpkg.com/snes.css@1.0.1/dist/snes.min.css">
+
+<!-- Press Start 2P Font -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+body {
+  background: #000;
+  font-family: 'Press Start 2P', monospace;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+}
+
+#hdr {
+  background: #1a1a1a;
+  border-bottom: 4px solid #4a9eff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+#logo {
+  font-size: 14px;
+  color: #4ade80;
+}
+
+.status {
+  padding: 12px;
+  background: #1a1a1a;
+  border: 3px solid #4ade80;
+  margin: 16px;
+  text-align: center;
+  font-size: 8px;
+  color: #4ade80;
+}
+
+#canvas-container {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  margin: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+}
+
+#room {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#trading-floor-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #888;
+  background: #000;
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div id="logo">⚔ ARK CAPITAL 98</div>
+</div>
+
+<div class="status" id="status">Inicializando...</div>
+
+<div id="canvas-container">
+  <div id="room">
+    <div id="director" style="display:none;"></div>
+    <div id="agent-grid">
+      <p style="color:#888;font-size:8px;">Cargando canvas...</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+console.log('[V2] Starting...');
+
+// Check DOM elements
+console.log('[V2] #room:', document.getElementById('room'));
+console.log('[V2] #agent-grid:', document.getElementById('agent-grid'));
+
+try {
+  document.getElementById('status').textContent = 'Cargando módulos...';
+  
+  // Import main.js
+  console.log('[V2] Importing main.js...');
+  const mainModule = await import('./js/main.js');
+  console.log('[V2] main.js imported:', mainModule);
+  
+  // Wait for canvas creation
+  setTimeout(() => {
+    const canvas = document.getElementById('trading-floor-canvas');
+    console.log('[V2] Canvas check:', canvas);
+    
+    if (canvas) {
+      console.log('[V2] ✓ Canvas found!', canvas.width, 'x', canvas.height);
+      document.getElementById('status').textContent = `✓ Canvas: ${canvas.width}x${canvas.height}px`;
+    } else {
+      console.log('[V2] ✗ Canvas NOT found');
+      const room = document.getElementById('room');
+      console.log('[V2] Room HTML:', room ? room.innerHTML : 'N/A');
+      document.getElementById('status').textContent = '✗ Canvas no creado';
+      document.getElementById('status').style.borderColor = '#f87171';
+      document.getElementById('status').style.color = '#f87171';
+    }
+  }, 1500);
+  
+} catch (error) {
+  console.error('[V2] Error:', error);
+  document.getElementById('status').textContent = '✗ Error: ' + error.message;
+  document.getElementById('status').style.borderColor = '#f87171';
+  document.getElementById('status').style.color = '#f87171';
+}
+</script>
+
+</body>
+</html>

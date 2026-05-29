@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Canvas 2D</title>
+<style>
+body {
+  background: #000;
+  color: #0f0;
+  font-family: monospace;
+  padding: 20px;
+}
+#trading-floor-canvas {
+  border: 2px solid #0f0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+</style>
+</head>
+<body>
+<h1>Test Canvas 2D Trading Floor</h1>
+<div id="status">Cargando...</div>
+<div id="room">
+  <div id="director">Director aquí</div>
+  <div id="agent-grid">Agent grid aquí (debería ser reemplazado)</div>
+</div>
+
+<script type="module">
+console.log('[Test] Starting...');
+
+try {
+  // Test imports
+  console.log('[Test] Importing modules...');
+  
+  const { Canvas2DEngine } = await import('./js/engine/Canvas2DEngine.js');
+  console.log('[Test] ✓ Canvas2DEngine imported');
+  
+  const { LayerManager } = await import('./js/engine/LayerManager.js');
+  console.log('[Test] ✓ LayerManager imported');
+  
+  const { StateManager } = await import('./js/state/StateManager.js');
+  console.log('[Test] ✓ StateManager imported');
+  
+  document.getElementById('status').textContent = '✓ Todos los módulos cargados correctamente';
+  document.getElementById('status').style.color = '#0f0';
+  
+  // Now run main.js logic
+  console.log('[Test] Running main.js logic...');
+  await import('./js/main.js');
+  
+} catch (error) {
+  console.error('[Test] ✗ Error:', error);
+  document.getElementById('status').textContent = '✗ Error: ' + error.message;
+  document.getElementById('status').style.color = '#f00';
+}
+</script>
+
+</body>
+</html>

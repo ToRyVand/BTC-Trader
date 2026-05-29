@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard 2D - Simple Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+body {
+  background: #000;
+  color: #0f0;
+  font-family: 'Press Start 2P', monospace;
+  padding: 20px;
+  margin: 0;
+}
+
+h1 {
+  color: #0ff;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+#room {
+  border: 2px solid #0f0;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+#director {
+  background: #111;
+  border: 2px solid #f0f;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+#trading-floor-canvas {
+  border: 3px solid #ff0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+  background: #222;
+}
+
+.status {
+  color: #ff0;
+  margin: 10px 0;
+  font-size: 8px;
+}
+</style>
+</head>
+<body>
+
+<h1>⚔ DASHBOARD 2D TRADING FLOOR</h1>
+
+<div class="status" id="status">Inicializando...</div>
+
+<div id="room">
+  <div id="director">
+    <div>DIRECTOR: EL DIRECTOR</div>
+    <div>Estado: ESPERANDO</div>
+  </div>
+  
+  <div id="agent-grid">
+    <div>AGENT GRID (será reemplazado por canvas)</div>
+  </div>
+</div>
+
+<script type="module">
+console.log('[Simple] Starting...');
+
+try {
+  // Import main.js
+  console.log('[Simple] Importing main.js...');
+  await import('./js/main.js');
+  
+  document.getElementById('status').textContent = '✓ Canvas inicializado correctamente';
+  document.getElementById('status').style.color = '#0f0';
+  
+} catch (error) {
+  console.error('[Simple] Error:', error);
+  document.getElementById('status').textContent = '✗ Error: ' + error.message;
+  document.getElementById('status').style.color = '#f00';
+}
+</script>
+
+</body>
+</html>

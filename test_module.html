@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="background:#000;color:#0f0;font-family:monospace;padding:20px;">
+<div id="log"></div>
+<script type="module">
+const log = (m) => document.getElementById('log').innerHTML += m + '<br>';
+try {
+  log('1. Module script started');
+  const t = Date.now();
+  log('2. About to import ./js/main.js?v=' + t);
+  await import('./js/main.js?v=' + t);
+  log('3. Import SUCCESS');
+} catch(e) {
+  log('3. Import FAILED: ' + e.message);
+  log('   Stack: ' + e.stack);
+}
+</script>
+</body></html>

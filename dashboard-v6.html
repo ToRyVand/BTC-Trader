@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ ARK CAPITAL — TRADING FLOOR 98 [EVENT SYSTEM]</title>
+
+<!-- SNES.css Framework -->
+<link rel="stylesheet" href="https://unpkg.com/snes.css@1.0.1/dist/snes.min.css">
+
+<!-- Press Start 2P Font -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+/* Custom overrides for SNES.css */
+body {
+  background: #000;
+  font-family: 'Press Start 2P', monospace;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Header */
+#hdr {
+  background: #1a1a1a;
+  border-bottom: 4px solid #4a9eff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+#logo {
+  font-size: 14px;
+  color: #4ade80;
+  text-shadow: 2px 2px 0 #166534;
+}
+
+.hdr-tick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tick-lbl {
+  font-size: 6px;
+  color: #888;
+  letter-spacing: 2px;
+}
+
+.tick-val {
+  font-size: 16px;
+  color: #fff;
+}
+
+.tick-chg {
+  font-size: 10px;
+}
+
+.tick-chg.up { color: #4ade80; }
+.tick-chg.dn { color: #f87171; }
+
+#hdr-status {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.svc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 7px;
+}
+
+.led {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  animation: led-pulse 2s ease-in-out infinite;
+}
+
+.led.g { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+.led.y { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+.led.r { background: #f87171; box-shadow: 0 0 8px #f87171; }
+
+@keyframes led-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+#hdr-clock {
+  font-size: 10px;
+  color: #4ade80;
+}
+
+/* Main Layout */
+#main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 16px;
+}
+
+@media (max-width: 1050px) {
+  #main { grid-template-columns: 1fr; }
+}
+
+/* Director Panel */
+#director {
+  background: linear-gradient(135deg, #1a0a2e, #2d1b4e);
+  border: 4px solid #a855f7;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+#dir-info {
+  flex: 1;
+}
+
+#dir-badge {
+  font-size: 6px;
+  color: #a855f7;
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+
+#dir-name {
+  font-size: 12px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+#dir-title {
+  font-size: 6px;
+  color: #888;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+#dir-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.dir-stat {
+  background: #000;
+  border: 2px solid #a855f7;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.dir-stat-v {
+  font-size: 14px;
+  color: #fff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.dir-stat-l {
+  font-size: 6px;
+  color: #888;
+}
+
+#dir-decision {
+  flex: 1;
+  background: #000;
+  border: 3px solid #a855f7;
+  padding: 12px;
+}
+
+#dir-signal {
+  font-size: 18px;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+#dir-signal.buy { color: #4ade80; text-shadow: 2px 2px 0 #166534; }
+#dir-signal.sell { color: #f87171; text-shadow: 2px 2px 0 #991b1b; }
+#dir-signal.hold { color: #fbbf24; text-shadow: 2px 2px 0 #92400e; }
+#dir-signal.wait { color: #888; }
+
+#dir-reason {
+  font-size: 7px;
+  color: #aaa;
+  line-height: 1.8;
+}
+
+/* Canvas Container */
+#canvas-container {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+}
+
+#room {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#trading-floor-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #888;
+  background: #000;
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#agent-grid {
+  color: #888;
+  font-size: 8px;
+  text-align: center;
+}
+
+/* Sidebar */
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: #1a1a1a;
+  border: 4px solid #4a9eff;
+  padding: 16px;
+}
+
+.panel-title {
+  font-size: 10px;
+  color: #4ade80;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
+}
+
+/* KPIs */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.kpi {
+  background: #000;
+  border: 2px solid #4a9eff;
+  padding: 10px;
+  text-align: center;
+}
+
+.kpi-v {
+  font-size: 16px;
+  color: #fff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.kpi-l {
+  font-size: 6px;
+  color: #888;
+  letter-spacing: 1px;
+}
+
+.kpi.hi .kpi-v { color: #4ade80; }
+.kpi.lo .kpi-v { color: #f87171; }
+
+/* Battle Log */
+.log-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #000;
+  padding: 8px;
+}
+
+.log-scroll::-webkit-scrollbar { width: 6px; }
+.log-scroll::-webkit-scrollbar-thumb { background: #4a9eff; }
+
+.log-row {
+  padding: 6px;
+  margin-bottom: 4px;
+  border-left: 3px solid;
+  font-size: 7px;
+  line-height: 1.8;
+}
+
+.log-row.ok { border-left-color: #4ade80; color: #4ade80; }
+.log-row.exec { border-left-color: #a855f7; color: #a855f7; }
+.log-row.skip { border-left-color: #fbbf24; color: #fbbf24; }
+.log-row.err { border-left-color: #f87171; color: #f87171; }
+
+.log-t { color: #666; margin-right: 6px; }
+.log-ev { color: #aaa; margin-right: 6px; }
+
+/* Status indicator */
+.status {
+  padding: 12px;
+  background: #1a1a1a;
+  border: 3px solid #4ade80;
+  margin: 0 16px 16px;
+  text-align: center;
+  font-size: 8px;
+  color: #4ade80;
+}
+
+.status.error {
+  border-color: #f87171;
+  color: #f87171;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="hdr">
+  <div id="logo">⚔ ARK CAPITAL <span style="color:#a855f7">98</span> <span style="color:#4a9eff;font-size:8px;">[EVENT SYSTEM]</span></div>
+  
+  <div class="hdr-tick">
+    <span class="tick-lbl">BTC/USDT</span>
+    <span class="tick-val" id="hdr-price">$——————</span>
+    <span class="tick-chg up" id="hdr-chg">+2.3%</span>
+  </div>
+  
+  <div id="hdr-status">
+    <div class="svc"><div class="led g"></div>LND</div>
+    <div class="svc"><div class="led g"></div>BOLTZ</div>
+    <div class="svc"><div class="led y"></div>JOURNAL</div>
+    <div id="hdr-clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- Status -->
+<div class="status" id="status">Inicializando Event System + Journal Polling...</div>
+
+<!-- Main -->
+<div id="main">
+  <!-- Left Column -->
+  <div>
+    <!-- Director -->
+    <div id="director">
+      <div id="dir-info">
+        <div id="dir-badge">[ DIRECTOR ]</div>
+        <div id="dir-name">EL DIRECTOR</div>
+        <div id="dir-title">AI BRAIN · CLAUDE SONNET</div>
+        <div id="dir-stats">
+          <div class="dir-stat">
+            <span class="dir-stat-v">85</span>
+            <span class="dir-stat-l">CON</span>
+          </div>
+          <div class="dir-stat">
+            <span class="dir-stat-v">1250</span>
+            <span class="dir-stat-l">XP</span>
+          </div>
+          <div class="dir-stat">
+            <span class="dir-stat-v">42</span>
+            <span class="dir-stat-l">TRADES</span>
+          </div>
+        </div>
+      </div>
+      
+      <div id="dir-decision">
+        <div id="dir-signal" class="wait">ESPERANDO</div>
+        <div id="dir-reason">Aguardando señales del equipo...</div>
+      </div>
+    </div>
+    
+    <!-- Canvas -->
+    <div id="canvas-container">
+      <div id="room">
+        <canvas id="trading-floor-canvas" width="640" height="480" style="image-rendering: pixelated; image-rendering: crisp-edges; border: 2px solid #888; background: #000; display: block;"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <!-- KPIs -->
+    <div class="panel">
+      <div class="panel-title">⚡ MÉTRICAS</div>
+      <div class="kpi-grid">
+        <div class="kpi hi">
+          <span class="kpi-v">+$2.4K</span>
+          <span class="kpi-l">P&L HOY</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-v">78%</span>
+          <span class="kpi-l">WIN RATE</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-v">42</span>
+          <span class="kpi-l">TRADES</span>
+        </div>
+        <div class="kpi lo">
+          <span class="kpi-v">-$180</span>
+          <span class="kpi-l">DRAWDOWN</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Battle Log -->
+    <div class="panel">
+      <div class="panel-title">📜 BATTLE LOG</div>
+      <div class="log-scroll" id="battle-log">
+        <div class="log-row ok">
+          <span class="log-t">--:--:--</span>
+          <span class="log-ev">SYSTEM</span>
+          <span>Esperando eventos...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2D Canvas Engine -->
+<script type="module">
+console.log('[V6] Starting Event System Dashboard...');
+
+// Add timestamp to force reload of modules
+const timestamp = Date.now();
+
+try {
+  // Update status
+  document.getElementById('status').textContent = '✓ Cargando Event System...';
+  
+  // Import main.js with cache busting
+  console.log('[V6] Importing main.js...');
+  await import(`./js/main.js?v=${timestamp}`);
+  
+  console.log('[V6] main.js loaded successfully');
+  
+  // Wait for canvas creation
+  setTimeout(() => {
+    const canvas = document.getElementById('trading-floor-canvas');
+    
+    if (canvas) {
+      console.log('[V6] ✓ Canvas found!', canvas.width, 'x', canvas.height);
+      document.getElementById('status').textContent = `✓ Event System Active — Journal Polling: 8s — Canvas: ${canvas.width}x${canvas.height}px`;
+    } else {
+      console.warn('[V6] ✗ Canvas not found');
+      document.getElementById('status').textContent = '⚠ Canvas no encontrado - ver consola';
+      document.getElementById('status').style.borderColor = '#fbbf24';
+      document.getElementById('status').style.color = '#fbbf24';
+    }
+  }, 1000);
+  
+  document.getElementById('status').style.borderColor = '#4ade80';
+  document.getElementById('status').style.color = '#4ade80';
+  
+  // Update clock
+  setInterval(() => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('es-AR', { hour12: false });
+    document.getElementById('hdr-clock').textContent = time;
+  }, 1000);
+  
+  // Simulate price updates
+  setInterval(() => {
+    const basePrice = 94250;
+    const variation = (Math.random() - 0.5) * 500;
+    const newPrice = basePrice + variation;
+    const change = ((variation / basePrice) * 100).toFixed(2);
+    
+    const priceEl = document.getElementById('hdr-price');
+    const changeEl = document.getElementById('hdr-chg');
+    
+    if (priceEl && changeEl) {
+      priceEl.textContent = `$${newPrice.toFixed(2)}`;
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${change}%`;
+      changeEl.className = change >= 0 ? 'tick-chg up' : 'tick-chg dn';
+    }
+  }, 3000);
+  
+  // Add battle log helper
+  window.addBattleLog = (type, event, message) => {
+    const logContainer = document.getElementById('battle-log');
+    if (!logContainer) return;
+    
+    const now = new Date();
+    const time = now.toLocaleTimeString('es-AR', { hour12: false });
+    
+    const logRow = document.createElement('div');
+    logRow.className = `log-row ${type}`;
+    logRow.innerHTML = `
+      <span class="log-t">${time}</span>
+      <span class="log-ev">${event}</span>
+      <span>${message}</span>
+    `;
+    
+    logContainer.appendChild(logRow);
+    
+    // Auto-scroll to bottom
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    // Keep only last 20 entries
+    while (logContainer.children.length > 20) {
+      logContainer.removeChild(logContainer.firstChild);
+    }
+  };
+  
+  // Listen to events and update battle log
+  if (window.tradingFloorEngine && window.tradingFloorEngine.eventSystem) {
+    window.tradingFloorEngine.eventSystem.on('cycle:start', (data) => {
+      window.addBattleLog('ok', 'CYCLE', 'Análisis iniciado');
+    });
+    
+    window.tradingFloorEngine.eventSystem.on('director:verdict', (data) => {
+      window.addBattleLog('exec', 'DECISION', `Director: ${data.decision}`);
+    });
+    
+    window.tradingFloorEngine.eventSystem.on('trade:executed', (data) => {
+      const profit = data.profit > 0 ? `+$${data.profit.toFixed(2)}` : `-$${Math.abs(data.profit).toFixed(2)}`;
+      window.addBattleLog(data.profit > 0 ? 'ok' : 'err', 'EXECUTION', `Trade ejecutado ${profit}`);
+    });
+  }
+  
+  // Add debug controls for testing events
+  window.testEvents = {
+    triggerCycle: () => {
+      console.log('[Debug] Triggering CYCLE event manually');
+      window.tradingFloorEngine.eventSystem.emit('cycle:start', {
+        timestamp: new Date().toISOString(),
+        signals: {
+          tech: 'BUY',
+          quant: 'BUY',
+          fund: 'HOLD',
+          sent: 'BUY',
+          risk: 'HOLD'
+        },
+        btcPrice: 94250.00
+      });
+    },
+    
+    triggerDecision: (decision = 'BUY') => {
+      console.log('[Debug] Triggering DECISION event manually');
+      window.tradingFloorEngine.eventSystem.emit('director:verdict', {
+        timestamp: new Date().toISOString(),
+        decision: decision,
+        confidence: 0.85,
+        reasoning: 'Decisión manual de prueba'
+      });
+    },
+    
+    triggerExecution: (profit = 240.50) => {
+      console.log('[Debug] Triggering EXECUTION event manually');
+      window.tradingFloorEngine.eventSystem.emit('trade:executed', {
+        timestamp: new Date().toISOString(),
+        action: profit > 0 ? 'BUY' : 'SELL',
+        profit: profit,
+        amount: 0.025,
+        price: 94250.00
+      });
+    },
+    
+    triggerFullCycle: () => {
+      console.log('[Debug] Triggering full cycle');
+      window.testEvents.triggerCycle();
+      setTimeout(() => window.testEvents.triggerDecision('BUY'), 8000);
+      setTimeout(() => window.testEvents.triggerExecution(240.50), 10000);
+    }
+  };
+  
+  console.log('\n=== Event Debug Functions Available ===');
+  console.log('window.testEvents.triggerCycle() - Trigger CYCLE event');
+  console.log('window.testEvents.triggerDecision(decision) - Trigger DECISION event');
+  console.log('window.testEvents.triggerExecution(profit) - Trigger EXECUTION event');
+  console.log('window.testEvents.triggerFullCycle() - Trigger full event cycle');
+  
+} catch (error) {
+  console.error('[V6] Error:', error);
+  document.getElementById('status').textContent = '✗ Error: ' + error.message;
+  document.getElementById('status').classList.add('error');
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,3 @@
+{"event":"CYCLE","timestamp":"2024-01-15T14:30:00.000Z","data":{"signals":{"tech":"BUY","quant":"BUY","fund":"HOLD","sent":"BUY","risk":"HOLD"},"btc_price":94250.00}}
+{"event":"DECISION","timestamp":"2024-01-15T14:30:15.000Z","data":{"decision":"BUY","confidence":0.85,"reasoning":"Consenso alcanzado: 3 señales BUY, 2 HOLD. Confianza alta."}}
+{"event":"EXECUTION","timestamp":"2024-01-15T14:30:20.000Z","data":{"action":"BUY","profit":240.50,"amount":0.025,"price":94250.00}}
