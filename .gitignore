@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.*
+# template con placeholders — SÍ se publica
+!.env.example
 
 # Python
 __pycache__/
